@@ -1,0 +1,89 @@
+/**
+ * Modern Skeuomorphism effect layer — values ported verbatim from the imported
+ * Stitch screens (light: gradient-surface/skeuo-*; dark: dark-surface-raised/
+ * glass-panel-dark/emerald glow), made theme-aware via tokens.css variables.
+ */
+
+/* Tactile card — gradient + rim highlight + layered lift + hairline */
+.skeuo-card {
+  background: linear-gradient(180deg, var(--skeuo-card-top) 0%, var(--skeuo-card-bottom) 100%);
+  border: 1px solid rgb(var(--skeuo-border) / var(--skeuo-border-a));
+  box-shadow:
+    inset 0 1px 0 0 rgb(var(--skeuo-rim) / var(--skeuo-rim-a)),
+    0 1px 2px rgb(0 0 0 / var(--skeuo-occ-1)),
+    0 8px 16px -4px rgb(0 0 0 / var(--skeuo-occ-2)),
+    0 24px 32px -8px rgb(0 0 0 / var(--skeuo-occ-3));
+}
+.skeuo-card-interactive { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.skeuo-card-interactive:active { transform: scale(0.985); }
+
+/* Top inner bevel (icon tiles, chips, avatars) */
+.skeuo-inner-highlight { box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.8), inset 0 0 0 1px rgb(255 255 255 / 0.2); }
+.dark .skeuo-inner-highlight { box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.06); }
+
+/* Raised control (buttons, icon buttons, pills) */
+.skeuo-raise {
+  box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.8), 0 1px 1px rgb(0 0 0 / 0.05), 0 4px 8px -2px rgb(0 0 0 / 0.1);
+}
+.dark .skeuo-raise {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 2px 4px rgb(0 0 0 / 0.4), 0 8px 16px rgb(0 0 0 / 0.2);
+}
+.skeuo-press:active { box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.1); transform: translateY(1px); }
+.dark .skeuo-press:active { box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.5); }
+
+/* Primary action — emerald glow lift in dark */
+.dark .skeuo-primary-glow { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 2px 4px rgb(0 0 0 / 0.4), 0 0 16px rgb(16 185 129 / 0.35); }
+
+/* Recessed cavity — inputs, sub-panels, trays */
+.skeuo-recessed {
+  box-shadow: inset 0 2px 4px var(--recessed-shadow), inset 0 1px 2px var(--recessed-shadow), 0 1px 0 var(--recessed-rim);
+}
+.skeuo-tray { box-shadow: inset 0 4px 12px var(--recessed-shadow), inset 0 1px 2px var(--recessed-shadow); }
+
+/* Pink "items needed" 3D badge */
+.badge-3d {
+  background: linear-gradient(135deg, #ffdad6 0%, #f4b4af 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), 0 2px 4px rgb(186 26 26 / 0.15);
+}
+.dark .badge-3d { background: linear-gradient(135deg, #5c1410 0%, #7a1b16 100%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08); }
+
+/* Phase tracker nodes */
+.skeuo-badge-completed {
+  background: linear-gradient(180deg, var(--skeuo-card-top) 0%, var(--skeuo-card-bottom) 100%);
+  box-shadow: inset 0 1px 0 0 rgb(var(--skeuo-rim) / var(--skeuo-rim-a)), 0 1px 2px rgb(0 0 0 / 0.06);
+  border: 1px solid rgb(var(--c-outline-variant) / 0.5);
+}
+.skeuo-badge-active {
+  background: linear-gradient(180deg, var(--skeuo-card-top) 0%, var(--skeuo-card-bottom) 100%);
+  box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05), 0 0 0 1px rgb(var(--c-primary) / 0.5), 0 0 12px 0 rgb(var(--c-primary) / 0.4);
+}
+.skeuo-badge-pending { background: rgb(var(--c-surface-container-high)); box-shadow: inset 0 2px 4px var(--recessed-shadow); border: 1px solid rgb(var(--c-outline-variant) / 0.5); }
+
+.progress-fill { background: rgb(var(--c-primary)); box-shadow: inset 0 1px 2px rgb(255 255 255 / 0.3); }
+
+/* Frosted glass — sticky header / floating nav */
+.glass {
+  background: rgb(var(--glass-bg) / var(--glass-a));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.4);
+  border-bottom: 1px solid rgb(var(--c-outline-variant) / 0.3);
+}
+.dark .glass { box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.05); border-bottom-color: rgb(255 255 255 / 0.05); }
+.glass-top { border-bottom: none; border-top: 1px solid rgb(var(--c-outline-variant) / 0.2); }
+.dark .glass-top { border-top-color: rgb(255 255 255 / 0.05); }
+
+/* Skeleton shimmer */
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.shimmer { position: relative; overflow: hidden; background: rgb(var(--shimmer-base)); }
+.shimmer::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(var(--shimmer-hi) / 0.85), transparent);
+  animation: shimmer 1.6s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeuo-press:active, .skeuo-card-interactive:active { transform: none; }
+  .skeuo-card-interactive { transition: none; }
+  .shimmer::after { animation: none; display: none; }
+}

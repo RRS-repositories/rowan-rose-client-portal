@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Claims Portal Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Be+Vietnam+Pro:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"surface-container-highest": "#e1e2e7", "tertiary-fixed": "#ffdcc2", "primary-fixed": "#cde5ff", "on-primary-fixed": "#001d32", "surface-variant": "#e1e2e7", background: "#f8f9fe", "on-primary": "#ffffff", "inverse-primary": "#95ccff", "on-error-container": "#93000a", tertiary: "#592e00", "secondary-fixed-dim": "#b3c9e0", "surface-container-lowest": "#ffffff", primary: "#003c60", "surface-container-high": "#e7e8ec", "tertiary-fixed-dim": "#ffb77a", "on-secondary-container": "#52667b", "surface-dim": "#d8dade", "outline-variant": "#c1c7d0", surface: "#f8f9fe", "on-secondary-fixed-variant": "#34495c", "on-error": "#ffffff", "on-tertiary": "#ffffff", "on-surface": "#191c1f", "on-primary-fixed-variant": "#004a75", "secondary-fixed": "#cfe5fd", "surface-tint": "#1f6393", "on-secondary": "#ffffff", "primary-fixed-dim": "#95ccff", "surface-bright": "#f8f9fe", "inverse-on-surface": "#eff0f5", "on-surface-variant": "#41474f", "inverse-surface": "#2e3134", "error-container": "#ffdad6", outline: "#717880", "on-tertiary-container": "#ffb26f", "primary-container": "#005483", "on-secondary-fixed": "#061d2f", "tertiary-container": "#7a4201", "on-tertiary-fixed-variant": "#6d3a00", "secondary-container": "#cfe5fd", error: "#ba1a1a", "on-primary-container": "#8ec8fd", "surface-container": "#edeef2", "surface-container-low": "#f2f3f8", secondary: "#4c6075", "on-tertiary-fixed": "#2e1500", "on-background": "#191c1f"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {xl: "80px", base: "8px", "margin-desktop": "64px", gutter: "24px", "margin-mobile": "16px", md: "24px", sm: "12px", lg: "48px", xs: "4px"}, fontFamily: {button: ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "body-lg": ["Be Vietnam Pro"], "body-md": ["Be Vietnam Pro"], "headline-md": ["Plus Jakarta Sans"], "display-lg-mobile": ["Plus Jakarta Sans"], "label-caps": ["Be Vietnam Pro"], headline: ["Plus Jakarta Sans"], display: ["Plus Jakarta Sans"], body: ["Be Vietnam Pro"], label: ["Be Vietnam Pro"]}, fontSize: {button: ["16px", {lineHeight: "20px", fontWeight: "600"}], "display-lg": ["48px", {lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700"}], "body-lg": ["18px", {lineHeight: "28px", fontWeight: "400"}], "body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "display-lg-mobile": ["32px", {lineHeight: "40px", fontWeight: "700"}], "label-caps": ["12px", {lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600"}]}}}};</script>
+<style>
+        .skeuomorphic-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f4f3f2 100%);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 1), 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0, 0, 0, 0.03), 0 24px 48px -12px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(191, 201, 195, 0.3);
+        }
+        .skeuomorphic-button {
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.15s ease;
+        }
+        .skeuomorphic-button:active {
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateY(1px);
+        }
+        .recessed-area {
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05), inset 1px 0 2px rgba(0, 0, 0, 0.02);
+            background-color: #eeeeed;
+        }
+        body {
+            background-color: #faf9f8;
+            color: #1a1c1c;
+        }
+    </style>
+</head>
+<body class="font-body-lg text-body-lg antialiased min-h-screen flex flex-col">
+<!-- TopAppBar (Web Desktop) -->
+<header class="sticky top-0 z-40 w-full flex items-center justify-between px-margin-desktop py-md bg-surface-bright/90 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8)] border-b border-outline-variant/30 shadow-md">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/30">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="A professional headshot of a person looking directly at the camera. The lighting is soft and natural, suggesting a modern, trustworthy environment. The overall aesthetic is clean and fits perfectly within a light-mode, premium digital interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiGkXDgyB4L2jOLwexroh6zQ57m1_c2SszomyMWJNjl9YZHOX0odmX3_OuT7pemnKTWFbQHLiY_tSTMgFWrQ_k63pFyAnpMULZ5iM3p7AIP-OEaCsHHK0zwtjZz7XFM7q1vQJ_HUCsYKoS5qWyrfKeHxYN7oYvMhbpiHp5sMimddFeVAYcoSSiToslmoHkRk-60V3_KI4Ftw7YWLXnNr_6LLdqHrnASGXkGeYQuxTCsznL4S9LJUbnlALvId2Gcp1oK8qAo5S0llw"/>
+</div>
+<h1 class="font-display-lg text-display-lg text-primary tracking-tight">Claims Portal</h1>
+</div>
+<nav class="hidden md:flex gap-gutter items-center">
+<a class="flex flex-col items-center justify-center text-primary font-bold px-4 py-2 bg-primary-container text-on-primary-container rounded-xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] active:scale-95 duration-150 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-caps text-label-caps mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 px-4 py-2 hover:bg-surface-container-highest transition-all rounded-xl active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-caps text-label-caps mt-1">Claims</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 px-4 py-2 hover:bg-surface-container-highest transition-all rounded-xl active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-caps text-label-caps mt-1">Docs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 px-4 py-2 hover:bg-surface-container-highest transition-all rounded-xl active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">forum</span>
+<span class="font-label-caps text-label-caps mt-1">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 px-4 py-2 hover:bg-surface-container-highest transition-all rounded-xl active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-caps text-label-caps mt-1">Profile</span>
+</a>
+</nav>
+<button class="w-12 h-12 flex items-center justify-center rounded-full text-primary hover:bg-surface-container-high transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-[1280px] mx-auto px-margin-desktop py-lg grid grid-cols-12 gap-gutter">
+<!-- Left Column: Action Required -->
+<section class="col-span-12 lg:col-span-4 flex flex-col gap-md">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-2">Action Required</h2>
+<div class="skeuomorphic-card rounded-xl p-md flex flex-col gap-sm">
+<div class="flex items-start gap-sm mb-2">
+<div class="w-10 h-10 rounded-full bg-error-container text-error flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
+<span class="material-symbols-outlined">warning</span>
+</div>
+<div>
+<h3 class="font-headline-md text-[20px] text-on-surface">Upload Identity Document</h3>
+<p class="text-on-surface-variant font-body-md mt-1">We need a copy of your passport or driver's license to verify your identity and proceed with claim #CL-2094.</p>
+</div>
+</div>
+<button class="skeuomorphic-button w-full py-3 bg-primary text-on-primary rounded-lg font-button text-button flex justify-center items-center gap-2 mt-2">
+<span class="material-symbols-outlined">upload_file</span>
+                    Upload Document
+                </button>
+</div>
+<div class="skeuomorphic-card rounded-xl p-md flex flex-col gap-sm">
+<div class="flex items-start gap-sm mb-2">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
+<span class="material-symbols-outlined">edit_document</span>
+</div>
+<div>
+<h3 class="font-headline-md text-[20px] text-on-surface">Sign Release Form</h3>
+<p class="text-on-surface-variant font-body-md mt-1">Please review and digitally sign the medical release form for claim #CL-1042.</p>
+</div>
+</div>
+<button class="skeuomorphic-button w-full py-3 bg-surface-container-high text-on-surface rounded-lg font-button text-button flex justify-center items-center gap-2 mt-2 border border-outline-variant/50">
+<span class="material-symbols-outlined">signature</span>
+                    Review &amp; Sign
+                </button>
+</div>
+</section>
+<!-- Right Column: Active Claims -->
+<section class="col-span-12 lg:col-span-8 flex flex-col gap-md">
+<div class="flex justify-between items-end mb-2">
+<h2 class="font-headline-md text-headline-md text-on-surface">Active Claims</h2>
+<a class="font-button text-button text-primary hover:underline" href="#">View All</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Claim Card 1 -->
+<div class="skeuomorphic-card rounded-xl p-md flex flex-col justify-between h-full relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110 duration-500"></div>
+<div>
+<div class="flex justify-between items-start mb-4">
+<span class="recessed-area px-3 py-1 rounded-full font-label-caps text-label-caps text-on-surface-variant">#CL-2094</span>
+<span class="font-button text-button text-on-surface-variant">Updated Today</span>
+</div>
+<h3 class="font-headline-md text-[24px] text-on-surface mb-2">Vehicle Collision Assessment</h3>
+<p class="text-on-surface-variant font-body-md mb-6">Awaiting your identity verification documents to proceed to the next stage.</p>
+</div>
+<div class="recessed-area rounded-lg p-sm">
+<div class="flex justify-between items-center mb-2">
+<span class="font-button text-button text-on-surface">Verification Stage</span>
+<span class="font-label-caps text-label-caps text-primary">25%</span>
+</div>
+<div class="w-full h-2 bg-surface-variant rounded-full overflow-hidden shadow-inner">
+<div class="h-full bg-primary rounded-full w-1/4"></div>
+</div>
+</div>
+</div>
+<!-- Claim Card 2 -->
+<div class="skeuomorphic-card rounded-xl p-md flex flex-col justify-between h-full relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110 duration-500"></div>
+<div>
+<div class="flex justify-between items-start mb-4">
+<span class="recessed-area px-3 py-1 rounded-full font-label-caps text-label-caps text-on-surface-variant">#CL-1042</span>
+<span class="font-button text-button text-on-surface-variant">Updated 2 days ago</span>
+</div>
+<h3 class="font-headline-md text-[24px] text-on-surface mb-2">Property Damage Review</h3>
+<p class="text-on-surface-variant font-body-md mb-6">Medical release form requires your signature before structural evaluation.</p>
+</div>
+<div class="recessed-area rounded-lg p-sm">
+<div class="flex justify-between items-center mb-2">
+<span class="font-button text-button text-on-surface">Documentation Stage</span>
+<span class="font-label-caps text-label-caps text-primary">60%</span>
+</div>
+<div class="w-full h-2 bg-surface-variant rounded-full overflow-hidden shadow-inner">
+<div class="h-full bg-primary rounded-full w-3/5"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Information Banner -->
+<div class="mt-lg skeuomorphic-card rounded-xl p-md flex items-center gap-md border-l-4 border-l-primary">
+<div class="w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+<span class="material-symbols-outlined text-2xl">info</span>
+</div>
+<div>
+<h4 class="font-button text-button text-on-surface">Settlement Timeline Update</h4>
+<p class="text-on-surface-variant font-body-md">Due to recent policy changes, standard review times have decreased by an average of 48 hours. Keep an eye on your portal for faster updates.</p>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_-8px_24px_rgba(0,0,0,0.08)] border-t border-outline-variant/20 rounded-t-xl">
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-2 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] active:inner-shadow-lg transform scale-98 transition-transform hover:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-caps text-label-caps mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 active:inner-shadow-lg transform scale-98 transition-transform hover:bg-surface-container-highest p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-caps text-label-caps mt-1">Claims</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 active:inner-shadow-lg transform scale-98 transition-transform hover:bg-surface-container-highest p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-caps text-label-caps mt-1">Docs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 active:inner-shadow-lg transform scale-98 transition-transform hover:bg-surface-container-highest p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined">forum</span>
+<span class="font-label-caps text-label-caps mt-1">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 active:inner-shadow-lg transform scale-98 transition-transform hover:bg-surface-container-highest p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-caps text-label-caps mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

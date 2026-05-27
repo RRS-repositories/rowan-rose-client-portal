@@ -1,0 +1,146 @@
+/**
+ * Modern Jurist — dual identity, faithful to the imported Stitch screens.
+ * Light  = Steel Blue (dashboard.*.light)  · fonts Plus Jakarta Sans + Be Vietnam Pro
+ * Dark   = Emerald Refined Dark (dashboard.*.dark) · fonts Literata + Hanken Grotesk
+ * Stored as RGB channel triplets so Stitch opacity modifiers (e.g. /30) work.
+ * Colour token NAMES are shared; only the values + fonts swap by theme.
+ */
+:root {
+  --c-background: 248 249 254;
+  --c-surface: 248 249 254;
+  --c-surface-bright: 248 249 254;
+  --c-surface-dim: 216 218 222;
+  --c-surface-container-lowest: 255 255 255;
+  --c-surface-container-low: 242 243 248;
+  --c-surface-container: 237 238 242;
+  --c-surface-container-high: 231 232 236;
+  --c-surface-container-highest: 225 226 231;
+  --c-surface-variant: 225 226 231;
+  --c-on-surface: 25 28 31;
+  --c-on-surface-variant: 65 71 79;
+  --c-on-background: 25 28 31;
+  --c-outline: 113 120 128;
+  --c-outline-variant: 193 199 208;
+  --c-primary: 0 60 96;
+  --c-on-primary: 255 255 255;
+  --c-primary-container: 0 84 131;
+  --c-on-primary-container: 205 229 255;
+  --c-primary-fixed: 205 229 255;
+  --c-primary-fixed-dim: 149 204 255;
+  --c-on-primary-fixed: 0 29 50;
+  --c-on-primary-fixed-variant: 0 74 117;
+  --c-inverse-primary: 149 204 255;
+  --c-secondary: 76 96 117;
+  --c-on-secondary: 255 255 255;
+  --c-secondary-container: 207 229 253;
+  --c-on-secondary-container: 52 73 92;
+  --c-secondary-fixed: 207 229 253;
+  --c-secondary-fixed-dim: 179 201 224;
+  --c-on-secondary-fixed: 6 29 47;
+  --c-on-secondary-fixed-variant: 52 73 92;
+  --c-tertiary: 89 46 0;
+  --c-on-tertiary: 255 255 255;
+  --c-tertiary-container: 122 66 1;
+  --c-on-tertiary-container: 255 178 111;
+  --c-tertiary-fixed: 255 220 194;
+  --c-tertiary-fixed-dim: 255 183 122;
+  --c-on-tertiary-fixed: 46 21 0;
+  --c-on-tertiary-fixed-variant: 109 58 0;
+  --c-error: 186 26 26;
+  --c-on-error: 255 255 255;
+  --c-error-container: 255 218 214;
+  --c-on-error-container: 147 0 10;
+  --c-inverse-surface: 46 49 52;
+  --c-inverse-on-surface: 239 240 245;
+  --c-surface-tint: 31 99 147;
+
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body: "Be Vietnam Pro", system-ui, sans-serif;
+
+  --skeuo-card-top: #ffffff;
+  --skeuo-card-bottom: #faf9f8;
+  --skeuo-rim: 255 255 255;
+  --skeuo-rim-a: 0.9;
+  --skeuo-border: 193 199 208;
+  --skeuo-border-a: 0.3;
+  --skeuo-occ-1: 0.05;
+  --skeuo-occ-2: 0.05;
+  --skeuo-occ-3: 0.02;
+  --recessed-shadow: rgba(0,0,0,0.05);
+  --recessed-rim: rgba(255,255,255,0.8);
+  --glass-bg: 248 249 254;
+  --glass-a: 0.9;
+  --shimmer-base: 231 232 236;
+  --shimmer-hi: 244 245 248;
+  color-scheme: light;
+}
+
+.dark {
+  --c-background: 17 19 22;
+  --c-surface: 17 19 22;
+  --c-surface-bright: 55 57 61;
+  --c-surface-dim: 17 19 22;
+  --c-surface-container-lowest: 12 14 17;
+  --c-surface-container-low: 26 28 31;
+  --c-surface-container: 30 32 35;
+  --c-surface-container-high: 40 42 45;
+  --c-surface-container-highest: 51 53 56;
+  --c-surface-variant: 51 53 56;
+  --c-on-surface: 233 233 237;
+  --c-on-surface-variant: 205 214 208;
+  --c-on-background: 233 233 237;
+  --c-outline: 134 148 138;
+  --c-outline-variant: 60 74 66;
+  --c-primary: 78 222 163;
+  --c-on-primary: 0 56 36;
+  --c-primary-container: 16 185 129;
+  --c-on-primary-container: 0 37 26;
+  --c-primary-fixed: 111 251 190;
+  --c-primary-fixed-dim: 78 222 163;
+  --c-on-primary-fixed: 0 33 19;
+  --c-on-primary-fixed-variant: 0 82 54;
+  --c-inverse-primary: 0 108 73;
+  --c-secondary: 183 200 225;
+  --c-on-secondary: 33 49 69;
+  --c-secondary-container: 58 74 95;
+  --c-on-secondary-container: 205 219 243;
+  --c-secondary-fixed: 211 228 254;
+  --c-secondary-fixed-dim: 183 200 225;
+  --c-on-secondary-fixed: 11 28 48;
+  --c-on-secondary-fixed-variant: 56 72 93;
+  --c-tertiary: 255 179 175;
+  --c-on-tertiary: 101 9 17;
+  --c-tertiary-container: 252 124 120;
+  --c-on-tertiary-container: 58 7 9;
+  --c-tertiary-fixed: 255 218 215;
+  --c-tertiary-fixed-dim: 255 179 175;
+  --c-on-tertiary-fixed: 65 0 5;
+  --c-on-tertiary-fixed-variant: 132 34 37;
+  --c-error: 255 180 171;
+  --c-on-error: 105 0 5;
+  --c-error-container: 147 0 10;
+  --c-on-error-container: 255 218 214;
+  --c-inverse-surface: 226 226 230;
+  --c-inverse-on-surface: 47 48 52;
+  --c-surface-tint: 78 222 163;
+
+  --font-display: "Literata", Georgia, serif;
+  --font-body: "Hanken Grotesk", system-ui, sans-serif;
+
+  --skeuo-card-top: #282a2d;
+  --skeuo-card-bottom: #1e2023;
+  --skeuo-rim: 255 255 255;
+  --skeuo-rim-a: 0.06;
+  --skeuo-border: 255 255 255;
+  --skeuo-border-a: 0.06;
+  --skeuo-occ-1: 0.5;
+  --skeuo-occ-2: 0.4;
+  --skeuo-occ-3: 0.5;
+  --recessed-shadow: rgba(0,0,0,0.5);
+  --recessed-rim: rgba(255,255,255,0.04);
+  --glass-bg: 26 28 31;
+  --glass-a: 0.7;
+  --shimmer-base: 40 42 45;
+  --shimmer-hi: 56 60 64;
+  color-scheme: dark;
+}

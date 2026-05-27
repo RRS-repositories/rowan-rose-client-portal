@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Claim Detail - Claims Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=Literata:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "surface-variant": "#333538",
+                "on-primary": "#003824",
+                "inverse-surface": "#e2e2e6",
+                "on-tertiary": "#650911",
+                "error-container": "#93000a",
+                "on-error": "#690005",
+                "surface-container-lowest": "#0c0e11",
+                "on-primary-fixed-variant": "#005236",
+                "on-secondary-fixed": "#0b1c30",
+                "tertiary-fixed-dim": "#ffb3af",
+                "surface-container-high": "#282a2d",
+                "primary": "#4edea3",
+                "surface-tint": "#4edea3",
+                "secondary-container": "#3a4a5f",
+                "surface-dim": "#111316",
+                "inverse-on-surface": "#2f3034",
+                "tertiary-fixed": "#ffdad7",
+                "surface-container-highest": "#333538",
+                "background": "#111316",
+                "on-tertiary-fixed-variant": "#842225",
+                "on-primary-container": "#00422b",
+                "surface-container-low": "#1a1c1f",
+                "on-background": "#e2e2e6",
+                "inverse-primary": "#006c49",
+                "tertiary": "#ffb3af",
+                "on-error-container": "#ffdad6",
+                "secondary-fixed-dim": "#b7c8e1",
+                "on-secondary": "#213145",
+                "primary-container": "#10b981",
+                "on-secondary-fixed-variant": "#38485d",
+                "tertiary-container": "#fc7c78",
+                "surface": "#111316",
+                "primary-fixed-dim": "#4edea3",
+                "on-surface": "#e2e2e6",
+                "on-surface-variant": "#bbcabf",
+                "on-tertiary-container": "#711419",
+                "outline-variant": "#3c4a42",
+                "primary-fixed": "#6ffbbe",
+                "on-secondary-container": "#a9bad3",
+                "outline": "#86948a",
+                "surface-bright": "#37393d",
+                "secondary-fixed": "#d3e4fe",
+                "error": "#ffb4ab",
+                "on-primary-fixed": "#002113",
+                "on-tertiary-fixed": "#410005",
+                "secondary": "#b7c8e1",
+                "surface-container": "#1e2023"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "base": "8px",
+                "md": "24px",
+                "lg": "40px",
+                "sm": "12px",
+                "xl": "64px",
+                "gutter": "24px",
+                "margin": "32px",
+                "xs": "4px"
+        },
+        "fontFamily": {
+                "headline-lg-mobile": [
+                        "Literata"
+                ],
+                "label-md": [
+                        "Hanken Grotesk"
+                ],
+                "headline-md": [
+                        "Literata"
+                ],
+                "headline-lg": [
+                        "Literata"
+                ],
+                "headline-xl": [
+                        "Literata"
+                ],
+                "body-md": [
+                        "Hanken Grotesk"
+                ],
+                "label-sm": [
+                        "Hanken Grotesk"
+                ],
+                "body-lg": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {
+                "headline-lg-mobile": [
+                        "28px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "600"
+                        }
+                ],
+                "label-md": [
+                        "14px",
+                        {
+                                "lineHeight": "1.4",
+                                "letterSpacing": "0.02em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "1.3",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-xl": [
+                        "48px",
+                        {
+                                "lineHeight": "1.1",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "450"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "0.04em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "1.6",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        .inner-shadow-highlight { box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1); }
+        .inner-shadow-pressed { box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5); }
+        .glass-panel { background: rgba(30, 32, 35, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .skeuomorphic-card {
+            background: linear-gradient(180deg, #1e2023 0%, #111316 100%);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.8);
+            border: 1px solid #333538;
+        }
+        .skeuomorphic-input {
+            background: #0c0e11;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8), inset 1px 0 2px rgba(0,0,0,0.5);
+            border: 1px solid #333538;
+        }
+        .skeuomorphic-badge {
+            background: #111316;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.05);
+            border: 1px solid #1e2023;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-40 w-full flex items-center justify-between px-margin py-base bg-surface-dim/90 backdrop-blur-md shadow-none border-b border-outline-variant/30 glass-panel">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/30 inner-shadow-highlight">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="A professional headshot of a business executive in a dark, moody modern office setting. Soft, directional lighting highlights their face against a blurred, deep grey background. The image has a premium, corporate aesthetic suitable for a high-end application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXan6Nrj_YHOtbDXJHyk45QgHBcilvkJD-BRak_1qUUbZXTqJJsHCBureUDZ0_u7LaWrvuUq0o1Dbd6qoj7RkgeDEh-itJVVf-rImpuhkFIqMUoTfOUVZJ6LyLwZKz-mrmwv1T7pi4OR4FPp5mtyW3MYFLUwd9lzOys4Zl6Q4YP57eaAhFiFaktyRsnxSpP6Eey2x20sfbigOca-lGp3hkbsHMWM9_G6ZNGYUZLHXS6toXif31DV1icucNI29iN0_z380wyKK1fYA"/>
+</div>
+<h1 class="font-headline-md text-headline-md text-primary-fixed-dim tracking-tight">Claims Portal</h1>
+</div>
+<!-- Desktop Nav embedded in TopAppBar -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="flex items-center gap-2 text-on-surface-variant hover:bg-surface-container-high transition-colors px-4 py-2 rounded-lg" href="#"><span class="material-symbols-outlined">home</span><span class="font-label-md text-label-md">Home</span></a>
+<a class="flex items-center gap-2 text-primary-fixed-dim font-bold bg-primary-container/20 px-4 py-2 rounded-lg inner-shadow-highlight" href="#"><span class="material-symbols-outlined">account_balance_wallet</span><span class="font-label-md text-label-md">Claims</span></a>
+<a class="flex items-center gap-2 text-on-surface-variant hover:bg-surface-container-high transition-colors px-4 py-2 rounded-lg" href="#"><span class="material-symbols-outlined">description</span><span class="font-label-md text-label-md">Docs</span></a>
+<a class="flex items-center gap-2 text-on-surface-variant hover:bg-surface-container-high transition-colors px-4 py-2 rounded-lg" href="#"><span class="material-symbols-outlined">forum</span><span class="font-label-md text-label-md">Chat</span></a>
+</nav>
+<button class="w-12 h-12 flex items-center justify-center rounded-full text-primary-fixed-dim hover:bg-surface-container-high transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</header>
+<main class="flex-grow w-full max-w-[1280px] mx-auto px-margin py-lg grid grid-cols-12 gap-gutter">
+<!-- Header Section -->
+<div class="col-span-12 mb-md flex justify-between items-end">
+<div>
+<div class="flex items-center gap-3 mb-2">
+<a class="text-on-surface-variant hover:text-primary-fixed-dim transition-colors flex items-center gap-1 font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-[20px]">arrow_back</span> Back to Claims</a>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-on-background">Claim #CLM-2023-8942</h2>
+<p class="font-body-lg text-body-lg text-secondary-fixed-dim mt-2">Commercial Property Damage - Water Leak</p>
+</div>
+<div class="flex gap-4">
+<button class="skeuomorphic-card px-6 py-3 rounded-lg font-label-md text-label-md text-on-background flex items-center gap-2 hover:bg-surface-container-high active:inner-shadow-pressed transition-all">
+<span class="material-symbols-outlined">print</span> Print
+                </button>
+<button class="bg-primary text-on-primary px-6 py-3 rounded-lg font-label-md text-label-md flex items-center gap-2 inner-shadow-highlight shadow-[0_4px_12px_rgba(0,0,0,0.4)] hover:brightness-110 active:inner-shadow-pressed transition-all border border-primary-fixed/20">
+<span class="material-symbols-outlined">edit</span> Update Claim
+                </button>
+</div>
+</div>
+<!-- Left Column: Details -->
+<div class="col-span-8 flex flex-col gap-gutter">
+<!-- Status Card -->
+<section class="skeuomorphic-card rounded-xl p-md">
+<div class="flex justify-between items-center mb-6 border-b border-outline-variant/20 pb-4">
+<h3 class="font-headline-md text-headline-md text-on-background flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">analytics</span> Status Tracker
+                    </h3>
+<div class="skeuomorphic-badge px-4 py-1 rounded-full text-primary-fixed-dim font-label-sm text-label-sm uppercase flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-primary-fixed-dim shadow-[0_0_8px_rgba(78,222,163,0.8)]"></div>
+                        Under Review
+                    </div>
+</div>
+<div class="relative pt-4 pb-8 px-4">
+<!-- Progress Line -->
+<div class="absolute top-[34px] left-8 right-8 h-1 bg-surface-dim rounded-full inner-shadow-pressed">
+<div class="h-full bg-primary-container w-[60%] rounded-full relative shadow-[0_0_12px_rgba(16,185,129,0.5)]"></div>
+</div>
+<div class="flex justify-between relative z-10">
+<!-- Step 1 -->
+<div class="flex flex-col items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-primary-container text-primary-fixed-dim flex items-center justify-center border-2 border-primary-fixed-dim inner-shadow-highlight shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="font-label-md text-label-md text-on-background">Filed</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Oct 12</span>
+</div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-primary-container text-primary-fixed-dim flex items-center justify-center border-2 border-primary-fixed-dim inner-shadow-highlight shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="font-label-md text-label-md text-on-background">Assigned</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Oct 14</span>
+</div>
+<!-- Step 3 (Current) -->
+<div class="flex flex-col items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface text-primary-fixed flex items-center justify-center border-2 border-primary-fixed inner-shadow-highlight shadow-[0_0_16px_rgba(111,251,190,0.2)]">
+<span class="material-symbols-outlined">hourglass_empty</span>
+</div>
+<span class="font-label-md text-label-md text-primary-fixed">Review</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">In Progress</span>
+</div>
+<!-- Step 4 -->
+<div class="flex flex-col items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface-dim text-on-surface-variant flex items-center justify-center border-2 border-outline-variant/30 skeuomorphic-input">
+<span class="material-symbols-outlined">gavel</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Decision</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Pending</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Claim Information -->
+<section class="skeuomorphic-card rounded-xl p-md">
+<h3 class="font-headline-md text-headline-md text-on-background mb-6 border-b border-outline-variant/20 pb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary-fixed-dim">info</span> Claim Information
+                </h3>
+<div class="grid grid-cols-2 gap-x-8 gap-y-6">
+<div>
+<label class="font-label-sm text-label-sm text-on-surface-variant block mb-2 uppercase">Policy Number</label>
+<div class="skeuomorphic-input px-4 py-3 rounded-lg font-body-md text-body-md text-on-background">
+                            POL-993-2023-AB
+                        </div>
+</div>
+<div>
+<label class="font-label-sm text-label-sm text-on-surface-variant block mb-2 uppercase">Date of Loss</label>
+<div class="skeuomorphic-input px-4 py-3 rounded-lg font-body-md text-body-md text-on-background flex justify-between items-center">
+                            Oct 10, 2023
+                            <span class="material-symbols-outlined text-on-surface-variant">calendar_today</span>
+</div>
+</div>
+<div class="col-span-2">
+<label class="font-label-sm text-label-sm text-on-surface-variant block mb-2 uppercase">Incident Description</label>
+<div class="skeuomorphic-input px-4 py-3 rounded-lg font-body-md text-body-md text-on-background min-h-[120px]">
+                            Severe water damage reported on the 3rd floor of the commercial office building due to a burst pipe in the server room overnight. Significant damage to flooring, drywall, and several server racks. Emergency extraction team was called immediately.
+                        </div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Sidebar -->
+<div class="col-span-4 flex flex-col gap-gutter">
+<!-- Contacts -->
+<section class="skeuomorphic-card rounded-xl p-md">
+<h3 class="font-headline-md text-headline-md text-on-background mb-6 border-b border-outline-variant/20 pb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary-fixed-dim">contacts</span> Key Contacts
+                </h3>
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-4 p-3 rounded-lg hover:bg-surface-dim/50 transition-colors border border-transparent hover:border-outline-variant/20 cursor-pointer">
+<div class="w-12 h-12 rounded-full overflow-hidden border border-outline-variant/30">
+<img alt="Adjuster" class="w-full h-full object-cover" data-alt="A portrait of a male claims adjuster in a dark suit against a shadowy background. The lighting is cinematic and moody, highlighting professional competence." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFGe9WHVEIo6EVvg53BwaP7WxZlW5vaAudJztdV6KablkL3FnVsRsNZV8I8HfLMD7ZmPRxVQGPUmvehM3uxA6q5hoWIbv9IpNW2vPqKzWaliM_1Qm99VtoR2XrelZqz1hw6WzDyKeTiAltgfOySeJgD90fysJLAhdpyFOQHHpH9lqbriipC3ShojfPf5sbw13JzO_R2tUV1ztYeAMO_oZAXgxcCH2h-LroTQqGADkGQ3U4njqfBljfwWPP14e9s3W5sP-dv3g9iRA"/>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-background">James Wilson</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Lead Adjuster</p>
+</div>
+<button class="ml-auto w-10 h-10 rounded-full skeuomorphic-card flex items-center justify-center text-primary-fixed-dim active:inner-shadow-pressed">
+<span class="material-symbols-outlined">mail</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Documents -->
+<section class="skeuomorphic-card rounded-xl p-md">
+<div class="flex justify-between items-center mb-6 border-b border-outline-variant/20 pb-4">
+<h3 class="font-headline-md text-headline-md text-on-background flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary-fixed-dim">folder_open</span> Documents
+                    </h3>
+<button class="text-primary-fixed-dim hover:text-primary-fixed font-label-md text-label-md">View All</button>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex items-center gap-3 skeuomorphic-input p-3 rounded-lg">
+<div class="w-10 h-10 rounded bg-error-container/20 text-error flex items-center justify-center border border-error/30">
+<span class="material-symbols-outlined">picture_as_pdf</span>
+</div>
+<div class="flex-grow">
+<p class="font-label-md text-label-md text-on-background truncate">Initial_Report.pdf</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase">2.4 MB • Oct 12</p>
+</div>
+<button class="text-on-surface-variant hover:text-on-background">
+<span class="material-symbols-outlined">download</span>
+</button>
+</div>
+<button class="w-full py-3 mt-2 border-2 border-dashed border-outline-variant/30 rounded-lg text-on-surface-variant hover:text-primary-fixed-dim hover:border-primary-fixed-dim/50 transition-colors font-label-md text-label-md flex justify-center items-center gap-2 bg-surface-dim/20">
+<span class="material-symbols-outlined">upload</span> Upload Document
+                    </button>
+</div>
+</section>
+</div>
+</main>
+</body></html>

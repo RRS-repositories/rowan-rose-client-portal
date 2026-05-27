@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.expo/
+.next/
+.cache/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# Claude Code — local/personal settings
+.claude/settings.local.json
+
+# Stitch design exploration — superseded by frontend/design-source, keep out of repo
+stitch_lending_claim_companion/
+
+# Obsidian — personal workspace state (don't commit)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/graph.json
+
+# Flutter (if used in Phase B)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+ios/Pods/
+android/.gradle/
+
+# Kotlin Multiplatform (if used in Phase B)
+.gradle/
+local.properties
+*.iml

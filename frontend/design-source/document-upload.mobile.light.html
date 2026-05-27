@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Upload Documents</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Be+Vietnam+Pro:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"surface-container-highest": "#e1e2e7", "tertiary-fixed": "#ffdcc2", "primary-fixed": "#cde5ff", "on-primary-fixed": "#001d32", "surface-variant": "#e1e2e7", background: "#f8f9fe", "on-primary": "#ffffff", "inverse-primary": "#95ccff", "on-error-container": "#93000a", tertiary: "#592e00", "secondary-fixed-dim": "#b3c9e0", "surface-container-lowest": "#ffffff", primary: "#003c60", "surface-container-high": "#e7e8ec", "tertiary-fixed-dim": "#ffb77a", "on-secondary-container": "#52667b", "surface-dim": "#d8dade", "outline-variant": "#c1c7d0", surface: "#f8f9fe", "on-secondary-fixed-variant": "#34495c", "on-error": "#ffffff", "on-tertiary": "#ffffff", "on-surface": "#191c1f", "on-primary-fixed-variant": "#004a75", "secondary-fixed": "#cfe5fd", "surface-tint": "#1f6393", "on-secondary": "#ffffff", "primary-fixed-dim": "#95ccff", "surface-bright": "#f8f9fe", "inverse-on-surface": "#eff0f5", "on-surface-variant": "#41474f", "inverse-surface": "#2e3134", "error-container": "#ffdad6", outline: "#717880", "on-tertiary-container": "#ffb26f", "primary-container": "#005483", "on-secondary-fixed": "#061d2f", "tertiary-container": "#7a4201", "on-tertiary-fixed-variant": "#6d3a00", "secondary-container": "#cfe5fd", error: "#ba1a1a", "on-primary-container": "#8ec8fd", "surface-container": "#edeef2", "surface-container-low": "#f2f3f8", secondary: "#4c6075", "on-tertiary-fixed": "#2e1500", "on-background": "#191c1f"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {xl: "80px", base: "8px", "margin-desktop": "64px", gutter: "24px", "margin-mobile": "16px", md: "24px", sm: "12px", lg: "48px", xs: "4px"}, fontFamily: {button: ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "body-lg": ["Be Vietnam Pro"], "body-md": ["Be Vietnam Pro"], "headline-md": ["Plus Jakarta Sans"], "display-lg-mobile": ["Plus Jakarta Sans"], "label-caps": ["Be Vietnam Pro"], headline: ["Plus Jakarta Sans"], display: ["Plus Jakarta Sans"], body: ["Be Vietnam Pro"], label: ["Be Vietnam Pro"]}, fontSize: {button: ["16px", {lineHeight: "20px", fontWeight: "600"}], "display-lg": ["48px", {lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700"}], "body-lg": ["18px", {lineHeight: "28px", fontWeight: "400"}], "body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "display-lg-mobile": ["32px", {lineHeight: "40px", fontWeight: "700"}], "label-caps": ["12px", {lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600"}]}}}};</script>
+<style>
+        /* Modern Skeuomorphism Utilities */
+        .recessed-tray {
+            box-shadow: inset 0px 4px 12px rgba(0, 0, 0, 0.08), inset 0px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .btn-skeuo {
+            box-shadow: inset 0px 1px 0px rgba(255, 255, 255, 0.8), 0px 1px 2px rgba(0, 0, 0, 0.1), 0px 4px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+        .btn-skeuo:active {
+            box-shadow: inset 0px 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateY(1px);
+        }
+        .card-skeuo {
+            background: linear-gradient(to bottom, #ffffff, #faf9f8);
+            box-shadow: inset 0px 1px 0px rgba(255, 255, 255, 1), 0px 2px 8px rgba(0, 0, 0, 0.04), 0px 8px 24px rgba(0, 0, 0, 0.02);
+        }
+        .progress-bar-inner {
+            background: linear-gradient(to right, #003527, #0b513d);
+            box-shadow: inset 0px 1px 2px rgba(255, 255, 255, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-lg min-h-screen flex flex-col md:hidden">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-40 w-full flex items-center justify-between px-margin-mobile py-base bg-surface-bright/90 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8)] border-b border-outline-variant/30 shadow-md">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/30 btn-skeuo">
+<img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRuakf0EoaNsxIkYg_3q85YbjQ1yer0P4dAJ68mINi_Vg74IvsIGazHntdRKtJudWhTl0Jn-r2tDm_jPFMEOHjje5fTIJiyAQlQv4cgZ5ToqBZgWl3Eq2eA005mx6yIy8Y5uh0pcLmiQvjFgsn8stLLscjqlBMCZVMZP1F980bNu9dnTXt5Qk2g1CSI9VK5gWRJI_6Dt8YLIALr5wSRCa-EHQsxWB1IDGCmNqLybdwbUb_dwEx1jgPc0fp_0FhCq3TOrZPjdk9tgo"/>
+</div>
+<h1 class="font-headline-md-mobile text-headline-md-mobile text-primary tracking-tight">Claims Portal</h1>
+</div>
+<button aria-label="Notifications" class="w-10 h-10 flex items-center justify-center rounded-full text-primary hover:bg-surface-container-high transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-1 px-margin-mobile py-md pb-xl overflow-y-auto">
+<!-- Outstanding Requirements Alert -->
+<section class="mb-md">
+<div class="card-skeuo rounded-xl p-md flex items-start gap-sm border border-error-container/50">
+<div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center shrink-0 btn-skeuo">
+<span class="material-symbols-outlined text-on-error-container">error</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-xs">Action Needed</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">You have 3 items pending to complete your claim submission.</p>
+</div>
+</div>
+</section>
+<!-- Upload Zone -->
+<section class="mb-md">
+<h3 class="font-headline-md text-headline-md text-primary mb-sm">Upload Documents</h3>
+<div class="recessed-tray bg-surface-container-low rounded-xl p-lg flex flex-col items-center justify-center text-center border border-outline-variant/20 min-h-[240px]">
+<div class="w-20 h-20 mb-sm relative">
+<!-- 3D Tinted Icon Effect -->
+<span class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-7xl text-primary-container blur-[2px] opacity-30 translate-y-1">cloud_upload</span>
+<span class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-7xl text-primary drop-shadow-sm" style="font-variation-settings: 'FILL' 1;">cloud_upload</span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface mb-sm">Tap to browse or take a photo of your documents.</p>
+<!-- File Pills -->
+<div class="flex flex-wrap justify-center gap-xs mt-sm">
+<span class="btn-skeuo bg-surface text-on-surface-variant font-label-caps text-label-caps px-sm py-xs rounded-full border border-outline-variant/30">PDF</span>
+<span class="btn-skeuo bg-surface text-on-surface-variant font-label-caps text-label-caps px-sm py-xs rounded-full border border-outline-variant/30">JPG</span>
+<span class="btn-skeuo bg-surface text-on-surface-variant font-label-caps text-label-caps px-sm py-xs rounded-full border border-outline-variant/30">PNG</span>
+<span class="btn-skeuo bg-surface text-on-surface-variant font-label-caps text-label-caps px-sm py-xs rounded-full border border-outline-variant/30">HEIC</span>
+</div>
+<button class="mt-md btn-skeuo bg-primary text-on-primary font-button text-button px-gutter py-sm rounded-full w-full max-w-[200px]">
+                    Select Files
+                </button>
+</div>
+</section>
+<!-- Upload List -->
+<section>
+<h3 class="font-headline-md text-headline-md text-primary mb-sm">Recent Uploads</h3>
+<div class="space-y-sm">
+<!-- Uploading Item (Progress) -->
+<div class="card-skeuo rounded-xl p-sm flex flex-col gap-xs border border-outline-variant/20">
+<div class="flex items-center gap-sm">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 border border-outline-variant/30">
+<span class="material-symbols-outlined text-secondary">description</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-lg text-body-lg text-on-surface truncate">Police_Report_01.pdf</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Uploading... 67%</p>
+</div>
+<button aria-label="Cancel upload" class="w-10 h-10 flex items-center justify-center text-on-surface-variant active:scale-95 transition-transform">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden mt-xs recessed-tray">
+<div class="h-full progress-bar-inner rounded-full" style="width: 67%;"></div>
+</div>
+</div>
+<!-- Completed Item -->
+<div class="card-skeuo rounded-xl p-sm flex items-center gap-sm border border-outline-variant/20">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 border border-outline-variant/30">
+<span class="material-symbols-outlined text-secondary">image</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-lg text-body-lg text-on-surface truncate">Damage_Photo_Front.jpg</p>
+<p class="font-body-md text-body-md text-on-surface-variant">2.4 MB</p>
+</div>
+<div class="w-10 h-10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<!-- Completed Item -->
+<div class="card-skeuo rounded-xl p-sm flex items-center gap-sm border border-outline-variant/20">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 border border-outline-variant/30">
+<span class="material-symbols-outlined text-secondary">description</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-lg text-body-lg text-on-surface truncate">Repair_Estimate.pdf</p>
+<p class="font-body-md text-body-md text-on-surface-variant">1.1 MB</p>
+</div>
+<div class="w-10 h-10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_-8px_24px_rgba(0,0,0,0.08)] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] border-t border-outline-variant/20 rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 hover:bg-surface-container-highest transition-all active:inner-shadow-lg transform scale-98 transition-transform min-w-[48px] min-h-[48px]" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-caps text-label-caps">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 hover:bg-surface-container-highest transition-all active:inner-shadow-lg transform scale-98 transition-transform min-w-[48px] min-h-[48px]" href="#">
+<span class="material-symbols-outlined mb-1">account_balance_wallet</span>
+<span class="font-label-caps text-label-caps">Claims</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-2 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] hover:bg-surface-container-highest transition-all active:inner-shadow-lg transform scale-98 transition-transform min-w-[48px] min-h-[48px]" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">description</span>
+<span class="font-label-caps text-label-caps">Docs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 hover:bg-surface-container-highest transition-all active:inner-shadow-lg transform scale-98 transition-transform min-w-[48px] min-h-[48px]" href="#">
+<span class="material-symbols-outlined mb-1">forum</span>
+<span class="font-label-caps text-label-caps">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-container opacity-80 hover:bg-surface-container-highest transition-all active:inner-shadow-lg transform scale-98 transition-transform min-w-[48px] min-h-[48px]" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-label-caps text-label-caps">Profile</span>
+</a>
+</nav>
+</body></html>

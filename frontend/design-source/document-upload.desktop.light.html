@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Document Upload - Claims Portal</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Config -->
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"surface-container-highest": "#e1e2e7", "tertiary-fixed": "#ffdcc2", "primary-fixed": "#cde5ff", "on-primary-fixed": "#001d32", "surface-variant": "#e1e2e7", background: "#f8f9fe", "on-primary": "#ffffff", "inverse-primary": "#95ccff", "on-error-container": "#93000a", tertiary: "#592e00", "secondary-fixed-dim": "#b3c9e0", "surface-container-lowest": "#ffffff", primary: "#003c60", "surface-container-high": "#e7e8ec", "tertiary-fixed-dim": "#ffb77a", "on-secondary-container": "#52667b", "surface-dim": "#d8dade", "outline-variant": "#c1c7d0", surface: "#f8f9fe", "on-secondary-fixed-variant": "#34495c", "on-error": "#ffffff", "on-tertiary": "#ffffff", "on-surface": "#191c1f", "on-primary-fixed-variant": "#004a75", "secondary-fixed": "#cfe5fd", "surface-tint": "#1f6393", "on-secondary": "#ffffff", "primary-fixed-dim": "#95ccff", "surface-bright": "#f8f9fe", "inverse-on-surface": "#eff0f5", "on-surface-variant": "#41474f", "inverse-surface": "#2e3134", "error-container": "#ffdad6", outline: "#717880", "on-tertiary-container": "#ffb26f", "primary-container": "#005483", "on-secondary-fixed": "#061d2f", "tertiary-container": "#7a4201", "on-tertiary-fixed-variant": "#6d3a00", "secondary-container": "#cfe5fd", error: "#ba1a1a", "on-primary-container": "#8ec8fd", "surface-container": "#edeef2", "surface-container-low": "#f2f3f8", secondary: "#4c6075", "on-tertiary-fixed": "#2e1500", "on-background": "#191c1f"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {xl: "80px", base: "8px", "margin-desktop": "64px", gutter: "24px", "margin-mobile": "16px", md: "24px", sm: "12px", lg: "48px", xs: "4px"}, fontFamily: {button: ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "body-lg": ["Be Vietnam Pro"], "body-md": ["Be Vietnam Pro"], "headline-md": ["Plus Jakarta Sans"], "display-lg-mobile": ["Plus Jakarta Sans"], "label-caps": ["Be Vietnam Pro"], headline: ["Plus Jakarta Sans"], display: ["Plus Jakarta Sans"], body: ["Be Vietnam Pro"], label: ["Be Vietnam Pro"]}, fontSize: {button: ["16px", {lineHeight: "20px", fontWeight: "600"}], "display-lg": ["48px", {lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700"}], "body-lg": ["18px", {lineHeight: "28px", fontWeight: "400"}], "body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "display-lg-mobile": ["32px", {lineHeight: "40px", fontWeight: "700"}], "label-caps": ["12px", {lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600"}]}}}};</script>
+<style>
+        /* Skeuomorphic utilities */
+        .glass-panel {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.4) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.8), 0 8px 24px rgba(0,0,0,0.04);
+        }
+        .recessed-tray {
+            box-shadow: inset 0 4px 12px rgba(0,0,0,0.06), inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .tactile-button {
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.4), 0 4px 8px rgba(0,0,0,0.08);
+            transition: all 0.15s ease;
+        }
+        .tactile-button:active {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            transform: scale(0.98);
+        }
+        .tactile-card {
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.04);
+            background: linear-gradient(180deg, #ffffff 0%, #faf9f8 100%);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen antialiased selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopAppBar (Desktop Navigation Shell) -->
+<header class="sticky top-0 z-40 w-full flex items-center justify-between px-margin-desktop py-md bg-surface-bright/90 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8)] border-b border-outline-variant/30 shadow-md">
+<div class="flex items-center gap-gutter">
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-primary tracking-tight">Claims Portal</h1>
+<!-- Desktop Nav Links (Mapped from BottomNavBar JSON) -->
+<nav class="hidden md:flex items-center gap-md ml-lg">
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-md py-sm rounded-lg font-button text-button flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">home</span>
+                    Home
+                </a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-md py-sm rounded-lg font-button text-button flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+                    Claims
+                </a>
+<!-- Active Nav Item -->
+<a class="text-primary font-bold bg-surface-container-lowest shadow-[inset_0_1px_0_0_rgba(255,255,255,1)] border border-outline-variant/20 rounded-lg px-md py-sm flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">description</span>
+                    Docs
+                </a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-md py-sm rounded-lg font-button text-button flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">forum</span>
+                    Chat
+                </a>
+</nav>
+</div>
+<div class="flex items-center gap-md">
+<button class="w-12 h-12 rounded-full tactile-card flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors border border-outline-variant/30">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-12 h-12 rounded-full overflow-hidden tactile-card border border-outline-variant/30">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="A professional headshot of a person with a neutral expression, framed tightly in a circular avatar format. The lighting is soft and natural, contributing to a clean, bright, and modern digital interface aesthetic. The image sits within a minimalist UI context featuring high-key whites and subtle grey tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpLqjWQRvBo2vybRIg-aeH0BOZ541SNI0MGo_BtMDf58UJZXlp0dVHoJUq-2Jsiz_YySgGqSf4Ss07ktZtFQ655sI6i3GWq_ZC0KSvVLp2FaGjBIrvnrowxphLD5Tiyx6BzSMzlVG6XixXpRVrNIYxu2DXS9BMgqYs_3zwHxV8QhtN0dBPpO68Ai87SW2daz-m_pwEkM6ad9KHUrdQ8F1ENh1a_XLkrQfiCXMJxeYeSNPbmPi3Ie_vYIvXd9eomZfo9bVNsh5Qcw4"/>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="max-w-[1280px] mx-auto px-margin-desktop py-lg grid grid-cols-12 gap-margin-desktop">
+<!-- Left Column: Primary Actions & Uploads (Span 8) -->
+<div class="col-span-12 md:col-span-8 flex flex-col gap-lg">
+<!-- Page Header -->
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-sm">Upload Documents</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+                    Please provide the necessary documentation to support your claim. Ensure all files are clear, legible, and under 25MB.
+                </p>
+</div>
+<!-- Drag & Drop Zone (Skeuomorphic Tray) -->
+<div class="recessed-tray bg-surface-container-low rounded-xl p-xl flex flex-col items-center justify-center border-2 border-dashed border-outline-variant/50 relative overflow-hidden group cursor-pointer hover:bg-surface-container transition-colors">
+<!-- Subtle grid background for tactile feel -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(var(--tw-colors-outline) 1px, transparent 1px); background-size: 16px 16px;"></div>
+<div class="w-20 h-20 rounded-full bg-surface-container-lowest tactile-card flex items-center justify-center mb-md text-primary shadow-lg group-hover:-translate-y-1 transition-transform duration-300">
+<span class="material-symbols-outlined text-[40px]" style="font-variation-settings: 'FILL' 1;">upload_file</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-xs">Drag and drop files here</h3>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-md">or browse your computer</p>
+<button class="tactile-button bg-primary text-on-primary font-button text-button rounded-lg px-md py-sm">
+                    Select Files
+                </button>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-md opacity-70">
+                    ACCEPTED: PDF, JPEG, PNG, DOCX (MAX 25MB)
+                </p>
+</div>
+<!-- Uploaded Documents Section -->
+<div class="mt-md">
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-headline-md text-headline-md text-on-surface">Uploaded Documents</h3>
+<span class="bg-surface-container-high text-on-surface-variant font-label-caps text-label-caps px-sm py-xs rounded-full shadow-inner">2 FILES</span>
+</div>
+<div class="flex flex-col gap-sm">
+<!-- Document Card 1 -->
+<div class="tactile-card rounded-xl p-md flex items-center gap-md border border-outline-variant/30 group">
+<div class="w-12 h-12 rounded-lg bg-error-container/20 flex items-center justify-center text-error shadow-inner">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">picture_as_pdf</span>
+</div>
+<div class="flex-1">
+<h4 class="font-button text-button text-on-surface group-hover:text-primary transition-colors">Incident_Report_Final.pdf</h4>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-sm mt-1">
+<span>2.4 MB</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span>Uploaded today, 10:42 AM</span>
+</p>
+</div>
+<div class="flex items-center gap-sm">
+<span class="bg-primary-fixed/30 text-on-primary-fixed-variant font-label-caps text-label-caps px-sm py-xs rounded flex items-center gap-1 border border-primary-fixed">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                VERIFIED
+                            </span>
+<button class="w-10 h-10 rounded-full hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant transition-colors" title="Options">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Document Card 2 -->
+<div class="tactile-card rounded-xl p-md flex items-center gap-md border border-outline-variant/30 group">
+<div class="w-12 h-12 rounded-lg bg-inverse-primary/20 flex items-center justify-center text-primary shadow-inner">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">image</span>
+</div>
+<div class="flex-1">
+<h4 class="font-button text-button text-on-surface group-hover:text-primary transition-colors">Damage_Photo_01.jpg</h4>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-sm mt-1">
+<span>4.8 MB</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span>Uploaded yesterday, 4:15 PM</span>
+</p>
+</div>
+<div class="flex items-center gap-sm">
+<span class="bg-primary-fixed/30 text-on-primary-fixed-variant font-label-caps text-label-caps px-sm py-xs rounded flex items-center gap-1 border border-primary-fixed">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                VERIFIED
+                            </span>
+<button class="w-10 h-10 rounded-full hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant transition-colors" title="Options">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Requirements & Guidance (Span 4) -->
+<div class="col-span-12 md:col-span-4 flex flex-col gap-lg relative">
+<!-- Sticky Requirements Panel -->
+<div class="sticky top-[120px]">
+<div class="tactile-card rounded-xl p-md border border-outline-variant/30">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md flex items-center gap-sm border-b border-outline-variant/20 pb-sm">
+<span class="material-symbols-outlined text-primary">fact_check</span>
+                        Requirements
+                    </h3>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-md">
+                        To process your claim without delays, please ensure the following documents are provided:
+                    </p>
+<ul class="flex flex-col gap-sm">
+<!-- Requirement Item: Uploaded -->
+<li class="flex items-start gap-sm p-sm rounded-lg bg-surface-container-lowest border border-outline-variant/20 shadow-sm">
+<div class="mt-1 text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div>
+<h4 class="font-button text-button text-on-surface">Incident Report</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs text-sm">Official documentation of the event.</p>
+</div>
+</li>
+<!-- Requirement Item: Missing -->
+<li class="flex items-start gap-sm p-sm rounded-lg bg-surface-container-low border border-outline-variant/40 border-dashed relative overflow-hidden">
+<!-- Inset shadow for depth on missing items -->
+<div class="absolute inset-0 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] pointer-events-none"></div>
+<div class="mt-1 text-on-surface-variant opacity-50">
+<span class="material-symbols-outlined">radio_button_unchecked</span>
+</div>
+<div class="relative z-10">
+<h4 class="font-button text-button text-on-surface">Proof of Identity</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs text-sm">Government-issued ID or passport.</p>
+<button class="mt-sm font-button text-button text-primary hover:underline flex items-center gap-1 text-sm">
+                                    Upload now
+                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</li>
+<!-- Requirement Item: Missing -->
+<li class="flex items-start gap-sm p-sm rounded-lg bg-surface-container-low border border-outline-variant/40 border-dashed relative overflow-hidden">
+<div class="absolute inset-0 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] pointer-events-none"></div>
+<div class="mt-1 text-on-surface-variant opacity-50">
+<span class="material-symbols-outlined">radio_button_unchecked</span>
+</div>
+<div class="relative z-10">
+<h4 class="font-button text-button text-on-surface">Receipts / Invoices</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs text-sm">Proof of expenses related to the claim.</p>
+</div>
+</li>
+</ul>
+</div>
+<!-- Help / Support Card -->
+<div class="mt-lg glass-panel rounded-xl p-md flex items-start gap-md border-l-4 border-l-primary">
+<span class="material-symbols-outlined text-primary mt-1">lightbulb</span>
+<div>
+<h4 class="font-button text-button text-on-surface">Need help scanning?</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">
+                            If you don't have a scanner, you can use your smartphone camera. Ensure good lighting and a plain background for best results.
+                        </p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Hidden on Desktop, present in DOM for potential mobile resizing logic per specs, though this specific page is designed for desktop) -->
+<nav class="hidden bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_-8px_24px_rgba(0,0,0,0.08)] border-t border-outline-variant/20 rounded-t-xl md:hidden">
+<!-- Not actively rendered visible here as per instructions to focus on Desktop UI and TopAppBar integration -->
+</nav>
+</body></html>

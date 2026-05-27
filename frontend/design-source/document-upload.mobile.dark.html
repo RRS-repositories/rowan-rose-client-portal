@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Document Upload - Claims Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Be+Vietnam+Pro:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "surface-variant": "#333538",
+                "on-primary": "#003824",
+                "inverse-surface": "#e2e2e6",
+                "on-tertiary": "#650911",
+                "error-container": "#93000a",
+                "on-error": "#690005",
+                "surface-container-lowest": "#0c0e11",
+                "on-primary-fixed-variant": "#005236",
+                "on-secondary-fixed": "#0b1c30",
+                "tertiary-fixed-dim": "#ffb3af",
+                "surface-container-high": "#282a2d",
+                "primary": "#4edea3",
+                "surface-tint": "#4edea3",
+                "secondary-container": "#3a4a5f",
+                "surface-dim": "#111316",
+                "inverse-on-surface": "#2f3034",
+                "tertiary-fixed": "#ffdad7",
+                "surface-container-highest": "#333538",
+                "background": "#111316",
+                "on-tertiary-fixed-variant": "#842225",
+                "on-primary-container": "#00422b",
+                "surface-container-low": "#1a1c1f",
+                "on-background": "#e2e2e6",
+                "inverse-primary": "#006c49",
+                "tertiary": "#ffb3af",
+                "on-error-container": "#ffdad6",
+                "secondary-fixed-dim": "#b7c8e1",
+                "on-secondary": "#213145",
+                "primary-container": "#10b981",
+                "on-secondary-fixed-variant": "#38485d",
+                "tertiary-container": "#fc7c78",
+                "surface": "#111316",
+                "primary-fixed-dim": "#4edea3",
+                "on-surface": "#e2e2e6",
+                "on-surface-variant": "#bbcabf",
+                "on-tertiary-container": "#711419",
+                "outline-variant": "#3c4a42",
+                "primary-fixed": "#6ffbbe",
+                "on-secondary-container": "#a9bad3",
+                "outline": "#86948a",
+                "surface-bright": "#37393d",
+                "secondary-fixed": "#d3e4fe",
+                "error": "#ffb4ab",
+                "on-primary-fixed": "#002113",
+                "on-tertiary-fixed": "#410005",
+                "secondary": "#b7c8e1",
+                "surface-container": "#1e2023"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "base": "8px",
+                "md": "24px",
+                "lg": "40px",
+                "sm": "12px",
+                "xl": "64px",
+                "gutter": "24px",
+                "margin": "32px",
+                "xs": "4px"
+        },
+        "fontFamily": {
+                "headline-lg-mobile": [
+                        "Literata"
+                ],
+                "label-md": [
+                        "Hanken Grotesk"
+                ],
+                "headline-md": [
+                        "Literata"
+                ],
+                "headline-lg": [
+                        "Literata"
+                ],
+                "headline-xl": [
+                        "Literata"
+                ],
+                "body-md": [
+                        "Hanken Grotesk"
+                ],
+                "label-sm": [
+                        "Hanken Grotesk"
+                ],
+                "body-lg": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {
+                "headline-lg-mobile": [
+                        "28px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "600"
+                        }
+                ],
+                "label-md": [
+                        "14px",
+                        {
+                                "lineHeight": "1.4",
+                                "letterSpacing": "0.02em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "1.3",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-xl": [
+                        "48px",
+                        {
+                                "lineHeight": "1.1",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "450"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "0.04em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "1.6",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body {
+            background-color: #111316; /* Fallback */
+            color: #e2e2e6;
+        }
+        
+        /* Skeuomorphic tactile effects for dark mode */
+        .tactile-card {
+            background: linear-gradient(145deg, #1e2023, #1a1c1f);
+            box-shadow: 
+                5px 5px 15px rgba(0,0,0,0.4), 
+                -5px -5px 15px rgba(255,255,255,0.02),
+                inset 0 1px 1px rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .recessed-tray {
+            background: #0c0e11;
+            box-shadow: 
+                inset 4px 4px 10px rgba(0,0,0,0.6),
+                inset -2px -2px 5px rgba(255,255,255,0.03);
+            border: 1px solid rgba(0,0,0,0.8);
+        }
+
+        .tactile-btn {
+            background: linear-gradient(145deg, #282a2d, #1e2023);
+            box-shadow: 
+                2px 2px 6px rgba(0,0,0,0.5),
+                -1px -1px 4px rgba(255,255,255,0.05),
+                inset 0 1px 1px rgba(255,255,255,0.1);
+            border: 1px solid #111;
+            transition: all 0.2s ease;
+        }
+
+        .tactile-btn:active {
+            box-shadow: inset 3px 3px 6px rgba(0,0,0,0.5), inset -1px -1px 3px rgba(255,255,255,0.02);
+            transform: translateY(1px);
+        }
+        
+        .tactile-btn-primary {
+            background: linear-gradient(145deg, #10b981, #006c49); /* Primary color gradient */
+            box-shadow: 
+                2px 2px 8px rgba(0,0,0,0.6),
+                -1px -1px 4px rgba(255,255,255,0.1),
+                inset 0 1px 1px rgba(255,255,255,0.2);
+            border: 1px solid #00422b;
+            color: #002113;
+        }
+        
+        .tactile-btn-primary:active {
+            box-shadow: inset 4px 4px 8px rgba(0,0,0,0.6), inset -1px -1px 4px rgba(255,255,255,0.05);
+            transform: translateY(2px);
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased selection:bg-primary selection:text-on-primary pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-40 w-full flex items-center justify-between px-margin py-base bg-background/90 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] border-b border-outline-variant/10 shadow-none">
+<div class="flex items-center gap-3">
+<button aria-label="Back" class="tactile-btn w-10 h-10 rounded-full flex items-center justify-center text-primary-fixed-dim">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-on-background tracking-tight">Upload Evidence</h1>
+</div>
+<button aria-label="Help" class="tactile-btn w-10 h-10 rounded-full flex items-center justify-center text-primary-fixed-dim">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 w-full max-w-[1280px] mx-auto px-margin py-md flex flex-col gap-gutter md:grid md:grid-cols-12">
+<!-- Instruction Banner -->
+<div class="md:col-span-12 tactile-card rounded-2xl p-sm flex items-start gap-sm">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center flex-shrink-0 border border-primary-container/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
+<span class="material-symbols-outlined text-primary-fixed-dim" data-icon="info">info</span>
+</div>
+<div>
+<h2 class="font-label-md text-label-md text-on-background mb-xs">Document Requirements</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Please provide clear, legible photos or scans of your incident report and any related medical receipts. Max file size: 10MB per document.</p>
+</div>
+</div>
+<!-- Upload Zone -->
+<section class="md:col-span-12 lg:col-span-8 flex flex-col gap-sm">
+<h3 class="font-label-md text-label-md text-on-background px-xs">Primary Documents</h3>
+<div class="recessed-tray rounded-3xl p-lg flex flex-col items-center justify-center text-center min-h-[240px] border-dashed border-2 border-outline-variant/20 relative overflow-hidden group cursor-pointer transition-all hover:border-primary-fixed-dim/50">
+<!-- Ambient glow in dark mode -->
+<div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+<div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-sm shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] border border-surface-container-high z-10 transition-transform group-hover:-translate-y-1">
+<span class="material-symbols-outlined text-primary-fixed-dim text-[32px]" data-icon="cloud_upload">cloud_upload</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-background mb-xs z-10">Tap to select files</h4>
+<p class="font-body-md text-body-md text-on-surface-variant z-10">or drop them here</p>
+<div class="mt-md flex gap-2 z-10">
+<span class="font-label-sm text-label-sm bg-surface-container px-3 py-1.5 rounded-full border border-surface-container-high text-on-surface-variant">JPG</span>
+<span class="font-label-sm text-label-sm bg-surface-container px-3 py-1.5 rounded-full border border-surface-container-high text-on-surface-variant">PNG</span>
+<span class="font-label-sm text-label-sm bg-surface-container px-3 py-1.5 rounded-full border border-surface-container-high text-on-surface-variant">PDF</span>
+</div>
+<!-- Hidden file input -->
+<input aria-label="File upload input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" multiple="" type="file"/>
+</div>
+</section>
+<!-- Document List / Staging Area -->
+<section class="md:col-span-12 lg:col-span-4 flex flex-col gap-sm">
+<div class="flex items-center justify-between px-xs">
+<h3 class="font-label-md text-label-md text-on-background">Ready to Upload</h3>
+<span class="font-label-sm text-label-sm text-primary-fixed-dim">2 Files</span>
+</div>
+<!-- Upload Item 1 -->
+<div class="tactile-card rounded-2xl p-sm flex items-center gap-sm">
+<!-- Document Thumbnail Placeholder -->
+<div class="w-12 h-12 rounded-lg recessed-tray flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+<img alt="Document thumbnail" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity" data-alt="A stylized, close-up abstract view of a blurred formal document with text and signatures visible but illegible. The lighting is low-key, moody, and highly contrasted, fitting a dark mode aesthetic. The paper appears slightly textured, set against a deep black background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqbC4JSMmqorGUxIFBEOOpyMzAT-uD0hhPAMCpfcB-WYH9gE6MW3JWtOr4Ajy_9ZqLtFDoY2Lhuz0e3hYVQoZ9Fmb86WDjjLwd6JTBzh27WlJfzcb7Oq4pDQIfQ4-05Xdeaz1fTguvBx7E_KPJap-h4jmR9HCCopyiuvUTKUtT1WchJybGhqovwgvZmLKGCqsWB6ActDpBhIjUF9XMWkgttzP0lzlEqxVCr7cldmlxnihfnnaSL0gxGk-PEgkm0JFpFyWLWfELRjw"/>
+<span class="material-symbols-outlined text-white z-10 absolute bottom-1 right-1 text-[16px]" data-icon="description">description</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-on-background truncate">Incident_Report_Signed.pdf</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">2.4 MB • Complete</p>
+</div>
+<button aria-label="Remove file" class="w-8 h-8 rounded-full flex items-center justify-center text-outline-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Upload Item 2 (Processing) -->
+<div class="tactile-card rounded-2xl p-sm flex flex-col gap-2 relative overflow-hidden">
+<div class="flex items-center gap-sm">
+<div class="w-12 h-12 rounded-lg recessed-tray flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-outline-variant" data-icon="image">image</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-on-background truncate">Damage_Photo_01.jpg</p>
+<p class="font-label-sm text-label-sm text-primary-fixed-dim mt-0.5 animate-pulse">Processing... 75%</p>
+</div>
+<button aria-label="Cancel upload" class="w-8 h-8 rounded-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)] border border-surface-container">
+<div class="h-full bg-primary-fixed-dim rounded-full w-[75%] relative">
+<div class="absolute inset-0 bg-white/20 blur-[1px]"></div>
+</div>
+</div>
+</div>
+<!-- Add Another Button -->
+<button class="tactile-btn rounded-2xl p-sm flex items-center justify-center gap-2 text-primary-fixed-dim mt-2 h-14">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span class="font-label-md text-label-md">Add Another File</span>
+</button>
+</section>
+<!-- Action Area -->
+<div class="md:col-span-12 mt-md flex flex-col gap-3">
+<button class="tactile-btn-primary rounded-2xl w-full h-14 flex items-center justify-center gap-2">
+<span class="font-label-md text-label-md font-bold">Submit Documents</span>
+<span class="material-symbols-outlined font-bold" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<p class="text-center font-label-sm text-label-sm text-on-surface-variant">You can always add more documents later from your claim details page.</p>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) - Adjusted for Dark Mode context per JSON instructions -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-background/95 backdrop-blur-xl shadow-[0_-8px_24px_rgba(0,0,0,0.5)] border-t border-outline-variant/10 rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim transition-all p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim transition-all p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-label-sm text-label-sm">Claims</span>
+</a>
+<!-- Active State for Docs -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-2 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] border border-primary/30" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="description">description</span>
+<span class="font-label-sm text-label-sm">Docs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim transition-all p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="forum">forum</span>
+<span class="font-label-sm text-label-sm">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim transition-all p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for the file drop zone
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.querySelector('input[type="file"]').parentElement;
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight(e) {
+                dropZone.classList.add('border-primary-fixed-dim');
+                dropZone.classList.remove('border-outline-variant/20');
+            }
+
+            function unhighlight(e) {
+                dropZone.classList.remove('border-primary-fixed-dim');
+                dropZone.classList.add('border-outline-variant/20');
+            }
+        });
+    </script>
+</body></html>
