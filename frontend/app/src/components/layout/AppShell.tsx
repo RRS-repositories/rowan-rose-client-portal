@@ -11,9 +11,11 @@ const BARE_ROUTES = new Set([
   "/register",
   "/verify-otp",
   "/create-password",
-  "/registration-success",
+  "/complete-profile",
   "/forgot-password",
+  "/check-email",
   "/reset-password",
+  "/password-reset-success",
 ]);
 
 /**
@@ -25,7 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (BARE_ROUTES.has(pathname)) return <>{children}</>;
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="min-h-dvh">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-on-primary"
@@ -34,7 +36,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
       <div className="mx-auto flex w-full max-w-[1700px]">
         <SideNav />
-        <main id="main" className="min-w-0 flex-1 pb-[120px] md:pb-0">
+        {/* Clip horizontal overflow on MOBILE only: the mobile page transition
+            slides with translateX, which would otherwise flash a horizontal
+            scrollbar mid-transition. On desktop the transition is vertical, so we
+            must NOT clip — clipping here makes an ancestor of the right-column
+            `position: sticky` cards, which breaks their pinning. */}
+        <main id="main" className="min-w-0 flex-1 overflow-x-clip pb-[120px] md:overflow-x-visible md:pb-0">
           {children}
         </main>
       </div>

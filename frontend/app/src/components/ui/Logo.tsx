@@ -13,9 +13,12 @@ export function Logo({ withWordmark = true, className }: { withWordmark?: boolea
       </span>
       {withWordmark && (
         <span className="leading-none">
-          <span className="block font-display text-[18px] font-bold text-on-surface">Rowan Rose</span>
-          <span className="mt-0.5 block font-body text-[11px] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-            Fast Action Claims
+          {/* App name in Times New Roman to read as a legal/firm wordmark. */}
+          <span
+            className="block text-[18px] font-bold text-on-surface"
+            style={{ fontFamily: '"Times New Roman", Times, serif' }}
+          >
+            Rowan Rose Solicitors
           </span>
         </span>
       )}

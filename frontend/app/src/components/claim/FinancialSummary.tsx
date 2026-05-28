@@ -1,6 +1,6 @@
 import { Icon } from "@/components/ui/Icon";
 import { computeFee, financialVisibility } from "@/data/financials";
-import { gbp, formatDate } from "@/lib/format";
+import { gbp, formatDate, formatPercentage } from "@/lib/format";
 import type { Claim } from "@/data/types";
 
 /** Progressive financial reveal (brief §8). Hidden entirely before an offer. */
@@ -40,7 +40,7 @@ export function FinancialSummary({ claim }: { claim: Claim }) {
 
   if (vis === "full" && f.gross != null) {
     const fee = computeFee(f.gross);
-    const pctLabel = `${Math.round(fee.pct * 100)}% + VAT`;
+    const pctLabel = `${formatPercentage(fee.pct)} + VAT`;
     return (
       <section aria-label="Settlement breakdown" className="skeuo-card overflow-hidden rounded-xl">
         <div className="flex items-center gap-sm p-md">

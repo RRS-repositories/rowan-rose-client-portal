@@ -15,7 +15,7 @@ export function AuthPlaceholder({ icon, title, phase }: { icon: string; title: s
           RR
         </span>
         <p className="mt-3 font-body text-label-caps uppercase tracking-[0.16em] text-on-surface-variant">
-          Rowan Rose · Fast Action Claims
+          Rowan Rose Solicitors
         </p>
 
         <span className="mx-auto mt-lg grid h-14 w-14 place-items-center rounded-full bg-primary-container text-on-primary-container skeuo-inner-highlight">

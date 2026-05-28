@@ -4,17 +4,18 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { StepIndicator } from "@/components/ui/StepIndicator";
 import { OtpInput } from "@/components/ui/OtpInput";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 import { useRegistration } from "@/context/RegistrationContext";
 import { useToast } from "@/components/ui/useToast";
 import { verifyOtp, resendOtp } from "@/api/auth";
 
-const STEPS = ["Details", "Verify", "Password", "Done"];
+const STEPS = ["Email", "Verify", "Password", "Details"];
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 export default function VerifyOtp() {
   const navigate = useNavigate();
-  const { state, setOtpVerified, setOtpAttemptsRemaining, decrementResendAttempts } = useRegistration();
+  const { state, setSignupToken, setOtpAttemptsRemaining, decrementResendAttempts, setDevCode } = useRegistration();
   const { push } = useToast();
 
   const [otp, setOtp] = useState("");
@@ -45,7 +46,7 @@ export default function VerifyOtp() {
     try {
       const res = await verifyOtp({ email: state.email, otp });
       if (res.verified) {
-        setOtpVerified(res.token);
+        setSignupToken(res.token);
         navigate("/create-password");
         return;
       }
@@ -64,17 +65,26 @@ export default function VerifyOtp() {
     setError(null);
     setExpiresIn(300);
     setCooldown(30);
-    await resendOtp({ email: state.email });
-    push({ title: "New code sent", description: `To your phone ending ${state.phoneLastFour}`, tone: "success" });
+    const res = await resendOtp({ email: state.email });
+    if (res.devCode) setDevCode(res.devCode);
+    push({ title: "New code sent", description: `Check ${state.email}`, tone: "success" });
   };
 
   return (
     <AuthLayout>
       <StepIndicator steps={STEPS} currentStep={1} />
-      <h1 className="mt-md font-display text-headline-md font-bold text-on-surface">Verify Your Identity</h1>
+      <h1 className="mt-md font-display text-headline-md font-bold text-on-surface">Verify Your Email</h1>
       <p className="mt-1 font-body text-body-md text-on-surface-variant">
-        We have sent a 6-digit code to your phone number ending in ****{state.phoneLastFour}.
+        We have sent a 6-digit code to <span className="font-semibold text-on-surface">{state.email}</span>.
       </p>
+
+      {/* Dev-only: no email provider is wired yet, so surface the code here. */}
+      {import.meta.env.DEV && state.devCode && (
+        <div className="mt-md flex items-center gap-2 rounded-lg border border-outline-variant/40 bg-surface-container-low px-3 py-2 font-body text-label text-on-surface-variant">
+          <Icon name="construction" size={16} className="flex-none text-primary" />
+          <span>Demo — email isn't connected yet. Your code is <span className="font-bold tracking-widest text-on-surface">{state.devCode}</span>.</span>
+        </div>
+      )}
 
       <form className="mt-md flex flex-col gap-md" onSubmit={(e) => { e.preventDefault(); onVerify(); }}>
         <OtpInput value={otp} onChange={setOtp} error={!!error || expired} disabled={locked} />

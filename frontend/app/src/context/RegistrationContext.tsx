@@ -3,49 +3,43 @@ import {
 } from "react";
 import { useLocation } from "react-router-dom";
 
-export interface RegistrationDetails {
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
+/**
+ * State for the multi-step signup flow (email → email OTP → password → profile).
+ * Held in memory and cleared the moment the user leaves the flow routes.
+ * The plaintext password is carried only between the password and profile steps,
+ * then submitted once to create the account.
+ */
+export interface RegistrationState {
+  step: number; // 0 Email · 1 Verify · 2 Password · 3 Details
   email: string;
-}
-
-export interface RegistrationState extends RegistrationDetails {
-  step: number; // 0 Details · 1 Verify · 2 Password · 3 Done
-  phoneLastFour: string;
-  otpToken: string;
+  signupToken: string; // returned by verify-otp, spent at complete-registration
+  password: string;
+  devCode: string | null; // dev-only OTP hint (no email provider wired yet)
   otpAttemptsRemaining: number;
   resendAttemptsRemaining: number;
   isLocked: boolean;
-  lockoutEndTime: number | null;
 }
-
-const LOCKOUT_MS = 15 * 60 * 1000;
 
 const INITIAL: RegistrationState = {
   step: 0,
-  firstName: "",
-  lastName: "",
-  dateOfBirth: "",
   email: "",
-  phoneLastFour: "",
-  otpToken: "",
+  signupToken: "",
+  password: "",
+  devCode: null,
   otpAttemptsRemaining: 5,
   resendAttemptsRemaining: 3,
   isLocked: false,
-  lockoutEndTime: null,
 };
 
-/** Routes that make up the registration flow — state survives navigation
- *  between these and is cleared the moment the user leaves them. */
-const FLOW_ROUTES = ["/register", "/verify-otp", "/create-password", "/registration-success"];
+const FLOW_ROUTES = ["/register", "/verify-otp", "/create-password", "/complete-profile"];
 
 interface RegistrationCtx {
   state: RegistrationState;
-  setRegistrationDetails: (details: RegistrationDetails & { phoneLastFour: string }) => void;
-  setOtpVerified: (token: string) => void;
+  setEmail: (email: string, devCode?: string | null) => void;
+  setSignupToken: (token: string) => void;
+  setPassword: (password: string) => void;
+  setDevCode: (code: string | null) => void;
   setOtpAttemptsRemaining: (remaining: number) => void;
-  decrementOtpAttempts: () => void;
   decrementResendAttempts: () => void;
   resetRegistration: () => void;
 }
@@ -60,27 +54,20 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
   const resetRegistration = useCallback(() => setState(INITIAL), []);
 
-  // Drop registration data (incl. the temporary token) when leaving the flow.
+  // Drop signup data (incl. the token + password) when leaving the flow.
   useEffect(() => {
     if (!inFlow) setState((s) => (s === INITIAL ? s : INITIAL));
   }, [inFlow]);
 
   const api = useMemo<RegistrationCtx>(() => ({
     state,
-    setRegistrationDetails: (details) => setState((s) => ({ ...s, ...details, step: 1 })),
-    setOtpVerified: (token) => setState((s) => ({ ...s, otpToken: token, step: 2 })),
+    setEmail: (email, devCode = null) =>
+      setState((s) => ({ ...s, email, devCode, step: 1, otpAttemptsRemaining: 5, resendAttemptsRemaining: 3, isLocked: false })),
+    setSignupToken: (token) => setState((s) => ({ ...s, signupToken: token, step: 2 })),
+    setPassword: (password) => setState((s) => ({ ...s, password, step: 3 })),
+    setDevCode: (code) => setState((s) => ({ ...s, devCode: code })),
     setOtpAttemptsRemaining: (remaining) =>
-      setState((s) => ({
-        ...s,
-        otpAttemptsRemaining: remaining,
-        isLocked: remaining <= 0,
-        lockoutEndTime: remaining <= 0 ? (s.lockoutEndTime ?? Date.now() + LOCKOUT_MS) : s.lockoutEndTime,
-      })),
-    decrementOtpAttempts: () =>
-      setState((s) => {
-        const n = Math.max(0, s.otpAttemptsRemaining - 1);
-        return { ...s, otpAttemptsRemaining: n, isLocked: n <= 0, lockoutEndTime: n <= 0 ? Date.now() + LOCKOUT_MS : s.lockoutEndTime };
-      }),
+      setState((s) => ({ ...s, otpAttemptsRemaining: remaining, isLocked: remaining <= 0 })),
     decrementResendAttempts: () =>
       setState((s) => ({ ...s, resendAttemptsRemaining: Math.max(0, s.resendAttemptsRemaining - 1) })),
     resetRegistration,

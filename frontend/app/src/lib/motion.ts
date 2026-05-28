@@ -4,9 +4,9 @@ export const softSpring: Transition = { type: "spring", stiffness: 210, damping:
 export const tween: Transition = { duration: 0.26, ease: [0.3, 0, 0, 1] };
 
 export const pageSlide: Variants = {
-  initial: { opacity: 0, x: 28 },
+  initial: { opacity: 0, x: 18 },
   animate: { opacity: 1, x: 0, transition: tween },
-  exit: { opacity: 0, x: -24, transition: { duration: 0.18, ease: [0.3, 0, 0, 1] } },
+  exit: { opacity: 0, x: -12, transition: { duration: 0.16, ease: [0.3, 0, 0, 1] } },
 };
 export const pageRise: Variants = {
   initial: { opacity: 0, y: 12 },

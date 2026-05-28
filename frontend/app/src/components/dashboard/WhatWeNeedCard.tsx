@@ -23,7 +23,7 @@ export function WhatWeNeedCard({ requirements }: { requirements: Requirement[] }
       <ul className="mt-md space-y-sm">
         {requirements.map((r) => (
           <li key={r.id}>
-            <Link to={r.action} className="flex items-center justify-between gap-sm rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-sm skeuo-recessed">
+            <Link to={`${r.action}?highlight=${r.id}`} className="flex items-center justify-between gap-sm rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-sm skeuo-recessed">
               <span className="flex min-w-0 items-center gap-sm">
                 <span className="grid h-10 w-10 flex-none place-items-center rounded-lg border border-error/10 bg-error-container/40 text-error skeuo-inner-highlight">
                   <Icon name={r.icon} size={22} />

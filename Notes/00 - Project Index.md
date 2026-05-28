@@ -1,55 +1,60 @@
 # 📂 Project Index — Rowan Rose Client Portal
 
-The home page of this vault. Start here.
+The home page of this vault. **Start here** — any tool, any session.
+
+> **Bootstrap (so you never re-explain the project):** point the agent at this note, then
+> [[ROADMAP]], then the area's `CLAUDE.md`. Claude Code, Codex, Cursor — same chain.
+> The agent reads the whole repo, so it sees these files even though the vault is only `Notes/`.
 
 ---
 
 ## Status
 
-- 🟡 **Phase A** — Frontend design exploration (active)
-- ⚪ **Phase B** — Frontend production build (waiting on Phase A approval)
-- ⚪ **Backend build** (waiting on frontend signoff)
+- 🟢 **Frontend — production build** active in `frontend/app/` — phases 1.1–1.3 landed
+- 🟢 **Design direction** chosen: "Modern Jurist" (see `frontend/design-source/DESIGN.md`)
+- ⚪ **Backend** — locked until frontend signoff
+- ⚪ **Security** — future area, no phases written yet
+
+Full per-phase detail: [[ROADMAP]].
 
 ---
 
-## Quick Links
+## Phases (this vault)
+
+- [[ROADMAP]] — every phase, every area, with status + dependencies
+- `Phases/Frontend/` — [[1.2 - Layout Shell and Navigation]] · [[1.3 - Registration Flow]]
+- `Phases/Backend/` · `Phases/Security/` — empty until those areas start
+- **Add a phase:** new note in `Phases/<Area>/` → Command palette → *Insert template* → **Phase**.
+  Then add a row to [[ROADMAP]]. Fill its "Build notes" as you build; flip `status:` when done.
+
+---
+
+## Quick Links (vault notes)
 
 - [[01 - Decisions]] — running log of decisions made
 - [[02 - Open Questions]] — things still to resolve
-- [[03 - Phase A Review Notes]] — review prototypes here
-- [[04 - Stack Decision Worksheet]] — pick the Phase B stack
+- [[03 - Phase A Review Notes]] — prototype review notes
+- [[04 - Stack Decision Worksheet]] — Phase B stack pick
 - [[05 - Brand Assets Checklist]] — what's needed visually
 
 ---
 
-## Project Folders
+## Key Project Files (in the repo, outside this vault — open in your editor)
+
+These are read by agents but live next to the code, so they aren't clickable in Obsidian:
+
+- `CLAUDE.md` (root) — project-wide rules for any agent
+- `AGENTS.md` (root) — entry point for non-Claude tools (points back here)
+- `frontend/CLAUDE.md` — frontend workflow + the Phase A/B gate
+- `frontend/Client_Portal_Frontend_Brief.md` — source of truth for the frontend
+- `frontend/design-source/DESIGN.md` — the chosen visual direction
+- `backend/CLAUDE.md` — locked until frontend signoff
 
 | Folder | Purpose | Status |
 |--------|---------|--------|
-| `frontend/` | Active build area | 🟡 Phase A |
-| `backend/` | API + integration | ⚪ Locked |
-| `Notes/` | This Obsidian vault | — |
-
----
-
-## Key Project Files
-
-- `CLAUDE.md` (root) — project-wide rules for Claude Code
-- `frontend/CLAUDE.md` — frontend workflow + gates
-- `frontend/Client_Portal_Frontend_Brief.md` — source of truth for what's being built
-- `backend/CLAUDE.md` — locked until frontend signoff
-
----
-
-## Workflow Reminder
-
-1. Tell Claude Code: *"Read CLAUDE.md and frontend/CLAUDE.md, then begin Phase A."*
-2. Wait for the 4–5 prototypes.
-3. Review them in browser. Log thoughts in [[03 - Phase A Review Notes]].
-4. Pick a direction (or a hybrid).
-5. Pick a stack in [[04 - Stack Decision Worksheet]].
-6. Tell Claude Code: *"Approved — direction X with stack Y. Begin Phase B."*
-7. After Phase B is done, come back and unlock backend.
+| `frontend/` | Active build area | 🟢 building |
+| `backend/` | API + integration | ⚪ locked |
+| `Notes/` | This vault — notes + phase tracking | — |
 
 ---
 

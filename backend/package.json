@@ -1,0 +1,19 @@
+{
+  "name": "rowan-rose-portal-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Rowan Rose Client Portal — auth backend (Phase 1.4 basic accounts on Postgres). Real CRM integration comes later.",
+  "scripts": {
+    "dev": "node --watch --env-file=.env src/server.js",
+    "start": "node --env-file=.env src/server.js",
+    "migrate": "node --env-file=.env src/migrate.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  }
+}

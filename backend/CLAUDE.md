@@ -1,12 +1,12 @@
 # Backend — Rowan Rose Client Portal
 
-## 🛑 STOP — This folder is NOT in scope yet.
+## Status — auth slice STARTED (2026-05-27, on Brad's explicit go-ahead)
 
-Brad has explicitly sequenced this project: **frontend gets fully built and approved before any backend work begins.**
+Brad's original sequencing was frontend-first. He has since explicitly directed a **basic accounts backend now** (Postgres, "since we'll use it for the future too"). So a focused **auth slice exists** — Express + Postgres for register/login/reset. See [`README.md`](./README.md) for what's built and how to run it.
 
-If you are reading this file because a user request has led you to start backend work while `frontend/` is not yet fully built and signed off, **stop and confirm with Brad before proceeding.** Do not assume.
+**Still NOT started / still frontend-mocked:** all CRM-backed client data (claims, documents, messages, financials), real email/SMS (OTP is dev-stubbed), S3 uploads, WebSockets, push. Don't build those without confirming with Brad — the rest of this file is the reference for when that broader integration begins.
 
-Until then, this folder stays empty. Do not pre-emptively scaffold, do not create starter files, do not run `npm init`, do not write API stubs.
+The frontend remains the priority; the backend is currently just the auth foundation.
 
 ---
 

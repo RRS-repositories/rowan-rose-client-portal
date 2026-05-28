@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 import { useRegistration } from "@/context/RegistrationContext";
-import { createPassword } from "@/api/auth";
 import { validatePassword, passwordStrength, validatePasswordMatch } from "@/utils/validation";
 
-const STEPS = ["Details", "Verify", "Password", "Done"];
+const STEPS = ["Email", "Verify", "Password", "Details"];
 
 const REQUIREMENTS = [
   { key: "minLength", label: "At least 8 characters" },
@@ -30,14 +29,14 @@ const STRENGTH = [
 
 export default function CreatePassword() {
   const navigate = useNavigate();
-  const { state } = useRegistration();
+  const { state, setPassword: storePassword } = useRegistration();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [confirmTouched, setConfirmTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const reqId = "pw-requirements";
 
-  if (!state.otpToken) return <Navigate to="/register" replace />;
+  if (!state.signupToken) return <Navigate to="/register" replace />;
 
   const checks = validatePassword(password);
   const strength = passwordStrength(password);
@@ -46,16 +45,13 @@ export default function CreatePassword() {
   const matchError = confirmTouched ? validatePasswordMatch(password, confirm) : null;
   const canSubmit = checks.isValid && confirm.length > 0 && password === confirm;
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || submitting) return;
+    // Hold the password; the account is created on the next (profile) step.
     setSubmitting(true);
-    try {
-      const res = await createPassword({ token: state.otpToken, password });
-      if (res.success) navigate("/registration-success");
-    } finally {
-      setSubmitting(false);
-    }
+    storePassword(password);
+    navigate("/complete-profile");
   };
 
   return (
@@ -106,9 +102,8 @@ export default function CreatePassword() {
         />
 
         <Button type="submit" fullWidth loading={submitting} disabled={!canSubmit}>
-          {submitting ? "Creating your account..." : "Create Account"}
+          Continue
         </Button>
-        <p aria-live="polite" className="sr-only">{submitting ? "Creating your account" : ""}</p>
       </form>
     </AuthLayout>
   );

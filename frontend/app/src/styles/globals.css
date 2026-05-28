@@ -4,26 +4,35 @@
 
 @layer base {
   html {
-    font-size: 18px; /* base 18px → web ≥18 / mobile ≥17 satisfied */
+    /* Base 18px web / 17px mobile (brief §2 floor: ≥18px web, ≥17px mobile).
+       FontSizeProvider writes --rr-font-size-{desktop,mobile} as the user
+       drags the /profile size slider; the rem-based type scale in
+       tailwind.config.ts scales with this. */
+    font-size: var(--rr-font-size-desktop, 18px);
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
+    /* Short transition — fast enough to feel snappy when dragging the slider
+       at 1%-per-step, slow enough to soften a click on a SettingsPanel preset. */
+    transition: font-size 80ms linear;
   }
-  /* Font-size accessibility lever — FontSizeProvider sets data-font-scale on
-     <html>; the rem-based type scale (tailwind.config.ts) scales with this. */
-  html[data-font-scale="large"]  { font-size: 20px; }
-  html[data-font-scale="xlarge"] { font-size: 22px; }
   @media (max-width: 360px) {
-    html { font-size: 17px; }
-    html[data-font-scale="large"]  { font-size: 19px; }
-    html[data-font-scale="xlarge"] { font-size: 21px; }
+    html { font-size: var(--rr-font-size-mobile, 17px); }
   }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; transition: none; }
+  }
 
   body {
     @apply bg-background text-on-background font-body antialiased;
     font-size: 1rem;
     line-height: 1.5;
     min-height: 100dvh;
+  }
+  /* Mobile only: the page transition slides with translateX, which would flash a
+     horizontal scrollbar. Clip it on phones. NOT on desktop — there an overflow
+     clip on <body> would break the right-column sticky cards. */
+  @media (max-width: 767.98px) {
+    body { overflow-x: clip; }
   }
   h1, h2, h3, h4 { @apply font-display; }
 
@@ -41,6 +50,74 @@
     user-select: none;
   }
   .material-symbols-outlined.fill { font-variation-settings: "FILL" 1, "wght" 400; }
+}
+
+/* Ambient colour wash that sits behind ALL content (fixed, decorative, never
+   interactive). The "very behind" layer the page surfaces float on. Light mode:
+   an airy multi-hue aurora (blue / violet / teal / peach) over the near-white
+   base. Dark mode: emerald / indigo / teal glow over the deep slate base. Alphas
+   are kept low so page-level text keeps its AA contrast.
+
+   The hues drift very slowly via two stacked pseudo-element layers at different
+   durations + directions — transform-only animation, fully GPU-composited, so
+   it adds no main-thread cost and won't fight network / auth work. The global
+   reduced-motion rule near the bottom of this file freezes the drift for users
+   who prefer no motion. */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: rgb(var(--c-background));
+}
+.ambient-bg::before,
+.ambient-bg::after {
+  content: "";
+  position: absolute;
+  /* Bigger than the viewport so the layer can translate / rotate / scale
+     visibly without ever revealing an edge. */
+  inset: -35%;
+  background-repeat: no-repeat;
+  will-change: transform;
+}
+.ambient-bg::before {
+  background-image:
+    radial-gradient(60% 50% at 15% 10%, rgb(96 142 255 / 0.22), transparent 65%),
+    radial-gradient(55% 50% at 88% 25%, rgb(178 132 255 / 0.18), transparent 65%),
+    radial-gradient(50% 45% at 50% 65%, rgb(72 222 200 / 0.14), transparent 70%);
+  animation: ambient-drift-a 70s ease-in-out infinite alternate;
+}
+.ambient-bg::after {
+  background-image:
+    radial-gradient(60% 50% at 85% 85%, rgb(72 222 200 / 0.20), transparent 65%),
+    radial-gradient(55% 45% at 12% 90%, rgb(255 168 150 / 0.16), transparent 65%),
+    radial-gradient(50% 45% at 50% 30%, rgb(178 132 255 / 0.10), transparent 70%);
+  animation: ambient-drift-b 90s ease-in-out -30s infinite alternate;
+}
+.dark .ambient-bg::before {
+  background-image:
+    radial-gradient(60% 50% at 15% 10%, rgb(16 185 129 / 0.26), transparent 65%),
+    radial-gradient(55% 50% at 88% 25%, rgb(99 102 241 / 0.22), transparent 65%),
+    radial-gradient(50% 45% at 50% 65%, rgb(45 212 191 / 0.16), transparent 70%);
+}
+.dark .ambient-bg::after {
+  background-image:
+    radial-gradient(60% 50% at 85% 85%, rgb(45 212 191 / 0.20), transparent 65%),
+    radial-gradient(55% 45% at 12% 90%, rgb(40 120 180 / 0.20), transparent 65%),
+    radial-gradient(50% 45% at 50% 30%, rgb(99 102 241 / 0.14), transparent 70%);
+}
+@keyframes ambient-drift-a {
+  0%   { transform: translate3d( 0%,  0%, 0) scale(1.00) rotate(  0deg); }
+  33%  { transform: translate3d(-6%,  4%, 0) scale(1.08) rotate(  4deg); }
+  66%  { transform: translate3d( 4%, -3%, 0) scale(1.05) rotate( -3deg); }
+  100% { transform: translate3d(-2%, -5%, 0) scale(1.10) rotate(  2deg); }
+}
+@keyframes ambient-drift-b {
+  0%   { transform: translate3d( 0%,  0%, 0) scale(1.00) rotate(  0deg); }
+  33%  { transform: translate3d( 5%, -4%, 0) scale(1.06) rotate( -4deg); }
+  66%  { transform: translate3d(-4%,  3%, 0) scale(1.09) rotate(  3deg); }
+  100% { transform: translate3d( 3%,  5%, 0) scale(1.04) rotate( -2deg); }
 }
 
 /* Dark-mode legibility: light text on dark reads thin at weight 400, so bump body

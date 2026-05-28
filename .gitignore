@@ -10,6 +10,10 @@ build/
 .cache/
 *.log
 
+# Test / iteration artefacts (local-only — don't commit)
+.tmp/
+**/.screenshots/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -33,10 +37,10 @@ Thumbs.db
 # Stitch design exploration — superseded by frontend/design-source, keep out of repo
 stitch_lending_claim_companion/
 
-# Obsidian — personal workspace state (don't commit)
-.obsidian/workspace.json
-.obsidian/workspace-mobile.json
-.obsidian/graph.json
+# Obsidian — personal workspace state (don't commit); vault lives in Notes/
+**/.obsidian/workspace.json
+**/.obsidian/workspace-mobile.json
+**/.obsidian/graph.json
 
 # Flutter (if used in Phase B)
 .dart_tool/

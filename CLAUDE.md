@@ -4,6 +4,8 @@ You are working on a client portal for **Rowan Rose Solicitors** (trading as **F
 
 This is **Brad Forbes**'s project. Brad is the IRL Manager and Team Manager at the firm and has built the firm's entire CRM stack himself (AWS / Node.js / PostgreSQL / React, ~90k contacts, ~108k claims). He knows what he wants and moves fast.
 
+> **Start here for navigation:** [`Notes/00 - Project Index.md`](Notes/00%20-%20Project%20Index.md) is the project hub — current status, where everything lives, and the phase roadmap. New session in any tool: read it → [`Notes/Phases/ROADMAP.md`](Notes/Phases/ROADMAP.md) → the area's `CLAUDE.md`. `Notes/` is an Obsidian vault.
+
 ---
 
 ## Project Structure
@@ -43,7 +45,9 @@ Out-of-scope items during the frontend phase are NOT to be implemented, even if 
 All data is mocked. See section 10 of `frontend/Client_Portal_Frontend_Brief.md`.
 
 ### 4. Brad's Obsidian vault (`Notes/`) is his workspace, not yours
-You may **read** notes for context. Do not **write or edit** notes there unless Brad explicitly asks you to.
+You may **read** all notes for context. Do not **write or edit** Brad's personal notes (`00`–`05`, `Daily/`, etc.) unless Brad explicitly asks you to.
+
+**Exception — `Notes/Phases/` is agent-maintained.** Phase specs, the per-phase "Build notes" sections, `status:` frontmatter, and `Notes/Phases/ROADMAP.md` are yours to keep current as work lands. New phase: copy `Notes/Templates/Phase.md` into `Notes/Phases/<Area>/` and add a ROADMAP row. The phase hub is the cross-session/cross-tool memory — update it, don't let it go stale.
 
 ---
 

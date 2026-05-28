@@ -11,7 +11,7 @@ export function TopNav() {
   return (
     <header className="glass sticky top-0 z-40 hidden md:block">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between px-margin-desktop py-md">
-        <Link to="/dashboard" className="rounded-xl" aria-label="Rowan Rose home">
+        <Link to="/dashboard" className="rounded-xl" aria-label="Rowan Rose Solicitors home">
           <Logo />
         </Link>
         <nav aria-label="Primary" className="flex items-center gap-gutter">

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Page } from "@/components/layout/Page";
 import { MobileHeader } from "@/components/layout/MobileHeader";
@@ -5,14 +6,18 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useToast } from "@/components/ui/useToast";
 import { PhaseProgressTracker } from "@/components/claim/PhaseProgressTracker";
 import { WhatHappensNext } from "@/components/claim/WhatHappensNext";
 import { Timeline } from "@/components/claim/Timeline";
 import { FinancialSummary } from "@/components/claim/FinancialSummary";
-import { OfferAcceptance } from "@/components/claim/OfferAcceptance";
+import { OfferBanner } from "@/components/claim/OfferBanner";
+import { OfferRejectionModal } from "@/components/claim/OfferRejectionModal";
+import { ActionItems } from "@/components/claim/ActionItems";
 import { LegalFooter } from "./Dashboard";
 import { useMockQuery } from "@/data/useMockQuery";
-import { getClaim } from "@/data/mock";
+import { getClaim, getRequirements } from "@/data/mock";
+import { getOfferDetails, rejectOffer, type OfferDetails } from "@/data/offers";
 import { phaseOf, clientMessage } from "@/data/statusMap";
 import { phaseIcon } from "@/data/phaseTracker";
 import { formatDate } from "@/lib/format";
@@ -44,13 +49,50 @@ function ClaimDetailsCard({ claim }: { claim: Claim }) {
 export default function ClaimDetail() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { loading, data: claim } = useMockQuery(() => getClaim(decodeURIComponent(id)), id);
+  const { push } = useToast();
+  const { loading, data: claim, refetch } = useMockQuery(() => getClaim(decodeURIComponent(id)), id);
+  const { data: requirements } = useMockQuery(getRequirements, "requirements");
+
+  // Offer details — fetched whenever a claim is in any offer-related state so
+  // the banner can show amounts/dates without prop-drilling through ActionItems.
+  const [offerDetails, setOfferDetails] = useState<OfferDetails | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+
+  useEffect(() => {
+    if (!claim) return;
+    const isOfferRelated = claim.internalStatus === "Offer Received" || claim.internalStatus === "Offer Accepted" || claim.internalStatus === "Offer Rejected";
+    if (!isOfferRelated) {
+      setOfferDetails(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const res = await getOfferDetails(claim.id);
+      if (!cancelled) setOfferDetails(res);
+    })();
+    return () => { cancelled = true; };
+  }, [claim]);
+
+  async function handleReject(reason: string) {
+    if (!claim) return;
+    setRejecting(true);
+    const res = await rejectOffer(claim.id, reason);
+    setRejecting(false);
+    if (!res.success) {
+      push({ title: "Couldn't reject offer", description: res.message, tone: "error" });
+      return;
+    }
+    push({ title: "Offer rejected", description: "We will continue pursuing your claim.", tone: "success" });
+    setRejectOpen(false);
+    refetch();
+  }
 
   return (
     <Page label="Claim detail">
       <MobileHeader variant="back" title="Claims Portal" />
       <div className="w-full px-margin-mobile py-md md:px-lg md:py-lg">
-        <button onClick={() => navigate(-1)} className="mb-md hidden min-h-[44px] items-center gap-1.5 font-button text-button text-primary hover:underline md:inline-flex">
+        <button onClick={() => navigate(-1)} aria-label="Back to dashboard" className="mb-md hidden min-h-[44px] items-center gap-1.5 font-button text-button text-primary hover:underline md:inline-flex">
           <Icon name="arrow_back" size={20} />
           Back to your claims
         </button>
@@ -79,7 +121,7 @@ export default function ClaimDetail() {
                 </header>
 
                 {/* Status message — full width */}
-                <section className="skeuo-card relative overflow-hidden rounded-xl p-md">
+                <section role="status" className="skeuo-card relative overflow-hidden rounded-xl p-md">
                   <div className="absolute left-0 top-0 h-full w-1 bg-inverse-primary" aria-hidden />
                   <div className="flex items-start gap-md">
                     <span className="grid h-12 w-12 flex-none place-items-center rounded-full bg-primary-container text-on-primary-container skeuo-inner-highlight">
@@ -98,9 +140,16 @@ export default function ClaimDetail() {
                 {/* Main + sidebar */}
                 <div className="grid grid-cols-1 gap-md lg:grid-cols-3">
                   <div className="space-y-md lg:col-span-2">
+                    {(claim.internalStatus === "Offer Received" || claim.internalStatus === "Offer Accepted" || claim.internalStatus === "Offer Rejected") && (
+                      <OfferBanner claim={claim} offer={offerDetails} onReject={() => setRejectOpen(true)} />
+                    )}
+                    {requirements ? (
+                      <ActionItems claim={claim} requirements={requirements} />
+                    ) : (
+                      <Skeleton className="h-28 w-full rounded-xl" />
+                    )}
                     <WhatHappensNext phase={phase} />
                     <FinancialSummary claim={claim} />
-                    {claim.internalStatus === "Offer Received" && <OfferAcceptance claim={claim} />}
                     <Timeline entries={claim.timeline} />
                     <div className="pt-xs lg:hidden">
                       <Button fullWidth leadingIcon="upload_file" onClick={() => navigate("/documents")}>Upload documents for this claim</Button>
@@ -119,6 +168,17 @@ export default function ClaimDetail() {
           })()
         )}
       </div>
+
+      {claim && claim.internalStatus === "Offer Received" && (
+        <OfferRejectionModal
+          open={rejectOpen}
+          offerAmount={claim.financials?.offer ?? 0}
+          lenderName={claim.lender.name}
+          submitting={rejecting}
+          onConfirm={handleReject}
+          onCancel={() => { if (!rejecting) setRejectOpen(false); }}
+        />
+      )}
     </Page>
   );
 }
