@@ -19,6 +19,7 @@ Status legend: `done` · `in-progress` · `blocked` · `planned`
 | 1.6 | Claim detail view | done | 1.5 | [[Phase_1.6_Claim_Detail_View]] |
 | 2.1 | Documents page & upload | done | 1.6 | [[Phase_2.1_Documents_and_Upload]] |
 | 3.1 | Messages / chat page | done | 2.1 | [[Phase_3.1_Messages_Page]] |
+| 5.2 | Mobile app packaging (PWA + Capacitor Android) | done | 5.1 | [[Phase_5.2_Mobile_App_Packaging]] |
 | 7.1 | Real API / CRM integration | planned | frontend signoff | _future_ |
 
 > The build (`frontend/app/`, outside this vault) is ahead of the brief's "Phase A prototypes"
@@ -27,11 +28,28 @@ Status legend: `done` · `in-progress` · `blocked` · `planned`
 
 ## Backend
 
-Locked until frontend signoff (see root `CLAUDE.md` workflow rule 1). No phases written yet.
+Backend foundation is now in progress on Brad's explicit Phase 6.1 instruction. Feature endpoints remain deferred to Phase 7.1.
 
 | Phase | Title | Status | Depends on | File |
 |-------|-------|--------|-----------|------|
-| — | _none yet_ | blocked | frontend signoff | — |
+| 6.1 | Backend architecture, CRM integration foundation, auth, caching, backups, EC2 | in-progress | frontend signoff | [[Phase_6.1_Backend_Architecture_and_CRM_Integration]] |
+| 7.1 | Real API / CRM integration endpoints | planned | 6.1 + CRM schema discovery | _future_ |
+
+## Mobile (native app — Android + iOS)
+
+The portal ships as a **downloadable native app** (Google Play + App Store) with push notifications —
+not just a web/PWA. Strategy, goals and do/don't: [[00 - Mobile App Strategy]]. The foundation
+(PWA + Capacitor Android) shipped as Frontend [[Phase_5.2_Mobile_App_Packaging]]. iOS builds via
+**Codemagic** (cloud-Mac). Store releases (8.4 / 8.5) are gated on real data (Phase 7.1).
+
+| Phase | Title | Status | Depends on | File |
+|-------|-------|--------|-----------|------|
+| 5.2 | Mobile app packaging (PWA + Capacitor Android) — foundation | done | 5.1 | [[Phase_5.2_Mobile_App_Packaging]] |
+| 8.1 | Native device capabilities (camera capture + biometric unlock) | planned | 5.2 | [[Phase_8.1_Native_Device_Capabilities]] |
+| 8.2 | Push notifications — real delivery (FCM + APNs) | planned | 8.1 + 6.1 | [[Phase_8.2_Push_Notifications]] |
+| 8.3 | iOS native build & TestFlight (Codemagic cloud-Mac) | planned | 5.2 | [[Phase_8.3_iOS_Build_and_TestFlight]] |
+| 8.4 | Google Play release (signed AAB + listing) | planned | 8.1 + 7.1 | [[Phase_8.4_Google_Play_Release]] |
+| 8.5 | Apple App Store release (submission + review) | planned | 8.1, 8.3 + 7.1 | [[Phase_8.5_Apple_App_Store_Release]] |
 
 ## Security
 

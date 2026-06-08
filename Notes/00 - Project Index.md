@@ -10,20 +10,25 @@ The home page of this vault. **Start here** — any tool, any session.
 
 ## Status
 
-- 🟢 **Frontend — production build** active in `frontend/app/` — phases 1.1–1.3 landed
+- 🟢 **Frontend — production build** active in `frontend/app/` — phases 1.x–5.x landed
 - 🟢 **Design direction** chosen: "Modern Jurist" (see `frontend/design-source/DESIGN.md`)
-- ⚪ **Backend** — locked until frontend signoff
+- 🟢 **Mobile — native app** shipped as PWA + Capacitor **Android**; **iOS, push & app stores planned** → [[00 - Mobile App Strategy]]
+- 🟡 **Backend** — foundation in progress (Phase 6.1)
 - ⚪ **Security** — future area, no phases written yet
 
 Full per-phase detail: [[ROADMAP]].
+
+> The portal is **not just a web app** — it ships as a **downloadable native app** (Google Play +
+> App Store) with push notifications, like a banking app. See [[00 - Mobile App Strategy]].
 
 ---
 
 ## Phases (this vault)
 
 - [[ROADMAP]] — every phase, every area, with status + dependencies
-- `Phases/Frontend/` — [[1.2 - Layout Shell and Navigation]] · [[1.3 - Registration Flow]]
-- `Phases/Backend/` · `Phases/Security/` — empty until those areas start
+- `Phases/Mobile/` — [[00 - Mobile App Strategy]] (native app: iOS, push, app stores) + phases 8.1–8.5
+- `Phases/Frontend/` — [[1.2 - Layout Shell and Navigation]] · [[1.3 - Registration Flow]] · [[Phase_5.2_Mobile_App_Packaging]]
+- `Phases/Backend/` — [[Phase_6.1_Backend_Architecture_and_CRM_Integration]] · `Phases/Security/` — empty until that area starts
 - **Add a phase:** new note in `Phases/<Area>/` → Command palette → *Insert template* → **Phase**.
   Then add a row to [[ROADMAP]]. Fill its "Build notes" as you build; flip `status:` when done.
 
