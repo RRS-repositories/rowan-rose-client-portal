@@ -6,10 +6,29 @@
  * ever sees data for the authenticated client's own contact — the client_id
  * comes from the verified token/account, never from the request.
  */
-import { verifyToken } from "../lib/auth.js";
+import { verifyToken, defaultPasswordFromDob } from "../lib/auth.js";
 import { query } from "../db.js";
 import { crmEnabled } from "../crmdb.js";
-import { getContactByClientId } from "../crm/repo.js";
+import { getContactByClientId, getContactsByEmail } from "../crm/repo.js";
+
+/**
+ * Resolve the CRM contact for a portal user. Primary path is the linked
+ * client_id; fallback matches by email + DOB so contacts that don't yet have a
+ * client_id populated (e.g. freshly-created records) still link to their claims.
+ */
+async function resolveContact(user) {
+  if (!crmEnabled()) return null;
+  if (user.client_id) {
+    const c = await getContactByClientId(user.client_id);
+    if (c) return c;
+  }
+  if (user.email && user.dob) {
+    const dobPw = defaultPasswordFromDob(user.dob);
+    const candidates = await getContactsByEmail(user.email);
+    return candidates.find((c) => defaultPasswordFromDob(c.dob) === dobPw) ?? null;
+  }
+  return null;
+}
 
 export async function requireAuth(req, res, next) {
   try {
@@ -26,9 +45,7 @@ export async function requireAuth(req, res, next) {
 
     req.user = rows[0];
     // Resolve the CRM contact once per request (null if unlinked or CRM disabled).
-    req.contact = crmEnabled() && rows[0].client_id
-      ? await getContactByClientId(rows[0].client_id)
-      : null;
+    req.contact = await resolveContact(rows[0]);
     next();
   } catch (err) {
     next(err);

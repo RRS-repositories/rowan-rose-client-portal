@@ -3,6 +3,9 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginClient, type AuthUser, type LoginResponse } from "@/api/auth";
+import { setToken as persistToken, getToken as readToken } from "@/lib/session";
+import { fetchRealClient, REAL_AUTH } from "@/data/realClient";
+import { setRealClient } from "@/data/mock";
 import { LogoutModal } from "@/components/ui/LogoutModal";
 import { SessionWarningModal } from "@/components/ui/SessionWarningModal";
 import { useInactivityTimer, INACTIVITY_LOGOUT_MS } from "@/hooks/useInactivityTimer";
@@ -64,7 +67,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = user !== null && token !== null;
 
-  // Restore a session on load: if the flag is present, mock a token refresh.
+  // Restore a session on load. In real-auth mode the live JWT is read back from
+  // session storage and the client's real data is re-hydrated; in mock mode we
+  // keep the original simulated refresh.
   useEffect(() => {
     let cancelled = false;
     const raw = sessionStorage.getItem(SESSION_KEY);
@@ -75,10 +80,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const parsed = JSON.parse(raw) as { user: AuthUser };
-        await delay(300); // simulated token refresh
-        if (cancelled) return;
-        setUser(parsed.user);
-        setToken("mock-jwt-token-refreshed");
+        const storedToken = readToken();
+        if (REAL_AUTH) {
+          if (!storedToken) {
+            sessionStorage.removeItem(SESSION_KEY);
+            return;
+          }
+          setUser(parsed.user);
+          setToken(storedToken);
+          setRealClient(await fetchRealClient());
+        } else {
+          await delay(300); // simulated token refresh
+          if (cancelled) return;
+          setUser(parsed.user);
+          setToken("mock-jwt-token-refreshed");
+        }
         lastActivityRef.current = Date.now();
         warnedRef.current = false;
       } catch {
@@ -97,25 +113,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (res.success && res.user) {
       setUser(res.user);
       setToken(res.token);
+      persistToken(res.token);
       lastActivityRef.current = Date.now();
       warnedRef.current = false;
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user: res.user }));
+      if (REAL_AUTH) setRealClient(await fetchRealClient());
     }
     return res;
   }, []);
 
-  const establishSession = useCallback((u: AuthUser, t: string) => {
+  const establishSession = useCallback(async (u: AuthUser, t: string) => {
     setUser(u);
     setToken(t);
+    persistToken(t);
     lastActivityRef.current = Date.now();
     warnedRef.current = false;
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user: u }));
+    if (REAL_AUTH) setRealClient(await fetchRealClient());
   }, []);
 
   const logout = useCallback(
     (reason: LogoutReason = "manual") => {
       setUser(null);
       setToken(null);
+      persistToken(null);
+      setRealClient(null);
       warnedRef.current = false;
       setWarningOpen(false);
       setLogoutOpen(false);

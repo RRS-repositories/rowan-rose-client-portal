@@ -28,6 +28,36 @@ clientRouter.get("/status", (req, res) => {
   });
 });
 
+/**
+ * One-shot assembly of the logged-in client (claims + requirements) in the
+ * frontend's Client shape, so the app can hydrate the dashboard in a single
+ * call after login. Documents/messages stay empty until those endpoints exist.
+ */
+clientRouter.get("/bootstrap", async (req, res, next) => {
+  try {
+    const u = req.user;
+    const parts = String(u.full_name).trim().split(/\s+/);
+    const [claims, requirements] = crmEnabled() && req.contact
+      ? await Promise.all([
+          getClaimsByContactId(req.contact.id),
+          getRequirementsByContactId(req.contact.id),
+        ])
+      : [[], []];
+    res.json({
+      client: {
+        id: u.client_id || (req.contact ? req.contact.client_id || "" : ""),
+        firstName: parts[0] ?? "",
+        lastName: parts.slice(1).join(" "),
+        claims,
+        requirements,
+        documents: [],
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 clientRouter.get("/claims", async (req, res, next) => {
   try {
     if (!crmEnabled() || !req.contact) return res.json({ claims: [] });

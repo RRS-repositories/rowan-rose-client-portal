@@ -93,7 +93,10 @@ export interface SetNewPasswordResponse {
   message: string;
 }
 
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== "false";
+// Auth talks to the real backend when VITE_REAL_AUTH=true (Phase 7.1), even
+// while the rest of the app still runs on mocks (VITE_USE_MOCKS).
+const USE_MOCKS =
+  import.meta.env.VITE_USE_MOCKS !== "false" && import.meta.env.VITE_REAL_AUTH !== "true";
 
 export function registerStart(data: RegisterStartRequest): Promise<RegisterStartResponse> {
   return USE_MOCKS ? mock.registerStart(data) : apiClient.post<RegisterStartResponse>("/auth/register-start", data);

@@ -3,6 +3,8 @@
  * Phase 7.1. baseURL comes from VITE_API_URL (defaults to ""). During the
  * frontend phase the auth functions route through mocks instead (see auth.ts).
  */
+import { getToken } from "@/lib/session";
+
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? "";
 
 export class ApiError extends Error {
@@ -13,9 +15,13 @@ export class ApiError extends Error {
 }
 
 async function request<T>(method: "GET" | "POST", url: string, body?: unknown): Promise<T> {
+  const token = getToken();
   const res = await fetch(BASE_URL + url, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: body != null ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
