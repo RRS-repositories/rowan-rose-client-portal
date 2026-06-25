@@ -56,9 +56,9 @@ clientRouter.get("/bootstrap", async (req, res, next) => {
       : [[], [], []];
     res.json({
       client: {
-        // Client ID = the CRM contact id (client_id column is often blank).
-        id: req.contact ? String(req.contact.id) : (u.client_id || ""),
-        clientId: req.contact ? String(req.contact.id) : (u.client_id || ""),
+        // Client ID = "RR-" + CRM contact id (client_id column is often blank).
+        id: req.contact ? `RR-${req.contact.id}` : (u.client_id || ""),
+        clientId: req.contact ? `RR-${req.contact.id}` : (u.client_id || ""),
         contactId: req.contact ? req.contact.id : null,
         firstName: parts[0] ?? "",
         lastName: parts.slice(1).join(" "),
@@ -186,7 +186,7 @@ clientRouter.get("/profile", async (req, res, next) => {
     ).length;
     res.json({
       profile: {
-        clientId: req.contact ? String(req.contact.id) : (u.client_id || ""),
+        clientId: req.contact ? `RR-${req.contact.id}` : (u.client_id || ""),
         firstName: parts[0] ?? "",
         lastName: parts.slice(1).join(" "),
         dateOfBirth: u.dob ? new Date(u.dob).toISOString() : "",
