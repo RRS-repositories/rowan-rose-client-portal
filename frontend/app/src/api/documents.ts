@@ -17,9 +17,11 @@ export function getClientDocuments(): Promise<UploadedDoc[]> {
 }
 
 export function uploadDocument(file: File, documentType: DocumentType): Promise<UploadResponse> {
-  return USE_MOCKS
-    ? mock.uploadDocument(file, documentType)
-    : apiClient.post<UploadResponse>("/client/documents/upload", { fileName: file.name, documentType });
+  if (!DOCS_REAL) return mock.uploadDocument(file, documentType);
+  const form = new FormData();
+  form.append("file", file);
+  form.append("documentType", documentType);
+  return apiClient.upload<UploadResponse>("/client/documents/upload", form);
 }
 
 export function deleteDocument(documentId: string): Promise<{ success: boolean; message: string }> {

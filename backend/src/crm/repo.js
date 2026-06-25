@@ -8,8 +8,9 @@
  *
  * CRM tables used: contacts, cases, documents, required_documents.
  */
-import { crmQuery } from "../crmdb.js";
+import { crmQuery, crmWriteQuery } from "../crmdb.js";
 import { mapStatus, isEscalatedStatus } from "./statusMap.js";
+import { s3Enabled, contactPrefix, listByPrefix, presignGet } from "../s3.js";
 
 // ── Contacts (clients) ──────────────────────────────────────────────────────
 
@@ -165,54 +166,82 @@ export async function getClaimById(contactId, claimKey) {
 
 // ── Requirements (outstanding documents) ────────────────────────────────────
 
-// ── Documents ───────────────────────────────────────────────────────────────
+// ── Documents (listed straight from the client's S3 folder) ──────────────────
 
-const DOC_TYPE = {
-  "id document": "id", id: "id", identification: "id",
-  "proof of address": "address", poa: "address",
-  "bank statement": "bank-statement",
-};
-const extMime = (ext, type) => {
+const IMG_EXT = ["jpg", "jpeg", "png", "gif", "webp", "heic"];
+const extMime = (ext) => {
   const e = String(ext || "").toLowerCase().replace(/^\./, "");
-  if (["jpg", "jpeg", "png", "gif", "webp"].includes(e) || type === "image") return `image/${e || "jpeg"}`;
-  if (e === "pdf" || type === "pdf") return "application/pdf";
-  if (["doc", "docx"].includes(e) || type === "docx") return "application/msword";
+  if (IMG_EXT.includes(e)) return `image/${e}`;
+  if (e === "pdf") return "application/pdf";
+  if (["doc", "docx"].includes(e)) return "application/msword";
+  if (["xls", "xlsx", "csv"].includes(e)) return "application/vnd.ms-excel";
   return "application/octet-stream";
 };
-const DOC_STATUS = { uploaded: "received", completed: "verified", received: "received", rejected: "rejected" };
+
+/** Coarse document type from the file's sub-folder path (for icon/grouping). */
+function docTypeFromPath(rel) {
+  const p = rel.toLowerCase();
+  if (p.includes("id_document") || p.includes("identification") || /(^|\/)id(\/|_)/.test(p)) return "id";
+  if (p.includes("proof_of_address") || p.includes("poa")) return "address";
+  if (p.includes("statement") || p.includes("bank")) return "bank-statement";
+  if (p.includes("loa") || p.includes("letter_of_authority")) return "loan-agreement";
+  return "other";
+}
+
+const CATEGORY_BY_DOCTYPE = {
+  id: "ID Document", address: "Proof of Address", "bank-statement": "Bank Statement",
+  "loan-agreement": "Letter of Authority", other: "Client",
+};
 
 /**
- * Client-visible documents only. Excludes the ~397k internal "Draft" docs
- * (firm-generated LOAs/cover/complaint letters), deleted/archived files, and
- * anything in hidden_documents. Shows the client's own uploads + completed docs.
+ * ALL of a client's files, listed directly from their S3 folder
+ * `{first}_{last}_{id}/` (every sub-folder — Documents/, Lenders/…). Folder
+ * markers and zero-byte keys are skipped, and anything the firm has hidden
+ * (hidden_documents) is excluded. Each file gets a short-lived presigned URL.
+ * Takes the CRM contact object (needs first/last/id to build the prefix).
  */
-export async function getDocumentsByContactId(contactId) {
-  const { rows } = await crmQuery(
-    `SELECT d.id, d.name, d.category, d.type, d.file_extension, d.file_size_bytes,
-            d.document_status, d.lender, d.created_at
-       FROM public.documents d
-      WHERE d.contact_id = $1
-        AND COALESCE(d.is_deleted, false) = false
-        AND COALESCE(d.archived, false) = false
-        AND lower(COALESCE(d.document_status, '')) IN ('uploaded', 'completed', 'received')
-        AND NOT EXISTS (
-          SELECT 1 FROM public.hidden_documents h
-           WHERE h.contact_id = d.contact_id AND h.s3_key = d.s3_key
-        )
-      ORDER BY d.created_at DESC`,
-    [contactId],
-  );
-  return rows.map((d) => ({
-    id: String(d.id),
-    name: d.name || "Document",
-    mime: extMime(d.file_extension, d.type),
-    fileSize: Number(d.file_size_bytes) || 0,
-    documentType: DOC_TYPE[String(d.category || "").toLowerCase()] || "other",
-    uploadedOn: iso(d.created_at) || "",
-    status: DOC_STATUS[String(d.document_status || "").toLowerCase()] || "received",
-    lenderName: d.lender || undefined,
-    kind: String(d.type || "").toLowerCase() === "image" ? "image" : "pdf",
+export async function getDocumentsByContactId(contact) {
+  if (!contact || !s3Enabled()) return [];
+  const prefix = contactPrefix(contact);
+  const [objects, hiddenRes] = await Promise.all([
+    listByPrefix(prefix),
+    crmQuery("SELECT s3_key FROM public.hidden_documents WHERE contact_id = $1", [contact.id]).catch(() => ({ rows: [] })),
+  ]);
+  const hidden = new Set(hiddenRes.rows.map((r) => r.s3_key));
+  const files = objects
+    .filter((o) => o.Key && !o.Key.endsWith("/") && (o.Size || 0) > 0 && !hidden.has(o.Key))
+    .sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified))
+    .slice(0, 300);
+  return Promise.all(files.map(async (o) => {
+    const rel = o.Key.slice(prefix.length);
+    const name = rel.split("/").pop();
+    const ext = (name.split(".").pop() || "").toLowerCase();
+    return {
+      id: Buffer.from(o.Key).toString("base64url"),
+      name,
+      mime: extMime(ext),
+      fileSize: Number(o.Size) || 0,
+      documentType: docTypeFromPath(rel),
+      uploadedOn: new Date(o.LastModified).toISOString(),
+      status: "received",
+      lenderName: rel.toLowerCase().startsWith("lenders/") ? (rel.split("/")[1] || "").replace(/_/g, " ") : undefined,
+      kind: IMG_EXT.includes(ext) ? "image" : "pdf",
+      folder: rel.includes("/") ? rel.split("/").slice(0, -1).join("/") : "",
+      url: await presignGet(o.Key),
+    };
   }));
+}
+
+/** Record a portal upload in the CRM documents table so staff see it. */
+export async function insertClientDocument(contact, originalName, sizeBytes, s3Key, documentType) {
+  const ext = (originalName.split(".").pop() || "").toLowerCase();
+  const sizeKB = `${(Number(sizeBytes) / 1024).toFixed(1)} KB`;
+  const category = CATEGORY_BY_DOCTYPE[documentType] || "Client";
+  await crmWriteQuery(
+    `INSERT INTO documents (contact_id, name, type, category, url, size, s3_key, document_status, file_size_bytes, tags, uploaded_by_name, created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,'uploaded',$8,$9,$10, now())`,
+    [contact.id, originalName, ext, category, "", sizeKB, s3Key, Number(sizeBytes) || 0, ["Uploaded", "Portal"], `${contact.first_name} ${contact.last_name}`.trim()],
+  );
 }
 
 const REQ_KIND = {

@@ -8,19 +8,26 @@
  * hidden status) returns 404 — the existence of other claims is never revealed.
  */
 import { Router } from "express";
+import multer from "multer";
 import { requireAuth } from "../middleware/auth.js";
-import { crmEnabled } from "../crmdb.js";
+import { crmEnabled, crmWriteEnabled } from "../crmdb.js";
 import { query } from "../db.js";
 import { hashPassword, verifyPassword } from "../lib/auth.js";
+import { s3Enabled, putObject, presignGet } from "../s3.js";
 import {
   getClaimsByContactId,
   getClaimById,
   getRequirementsByContactId,
   getDocumentsByContactId,
+  insertClientDocument,
 } from "../crm/repo.js";
 
 export const clientRouter = Router();
 clientRouter.use(requireAuth);
+
+// In-memory upload (max 25MB) — file is streamed straight to S3, never to disk.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+const IMG_EXT = ["jpg", "jpeg", "png", "gif", "webp", "heic"];
 
 /** Liveness for the CRM link — handy while wiring the frontend. */
 clientRouter.get("/status", (req, res) => {
@@ -44,7 +51,7 @@ clientRouter.get("/bootstrap", async (req, res, next) => {
       ? await Promise.all([
           getClaimsByContactId(req.contact.id),
           getRequirementsByContactId(req.contact.id),
-          getDocumentsByContactId(req.contact.id),
+          getDocumentsByContactId(req.contact),
         ])
       : [[], [], []];
     res.json({
@@ -98,7 +105,48 @@ clientRouter.get("/requirements", async (req, res, next) => {
 clientRouter.get("/documents", async (req, res, next) => {
   try {
     if (!crmEnabled() || !req.contact) return res.json([]);
-    res.json(await getDocumentsByContactId(req.contact.id));
+    res.json(await getDocumentsByContactId(req.contact));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Upload a document → client's S3 folder (…/Documents/) + a CRM documents row. */
+clientRouter.post("/documents/upload", upload.single("file"), async (req, res, next) => {
+  try {
+    if (!req.contact) return res.status(404).json({ success: false, message: "Account not linked." });
+    if (!s3Enabled()) return res.status(503).json({ success: false, message: "Uploads are temporarily unavailable." });
+    const file = req.file;
+    if (!file) return res.status(400).json({ success: false, message: "No file was provided." });
+
+    const documentType = String(req.body?.documentType || "other");
+    const safe = file.originalname.replace(/[\\/]+/g, "_").replace(/[^\w.\- ]/g, "_").slice(0, 180) || "upload";
+    const key = `${req.contact.first_name}_${req.contact.last_name}_${req.contact.id}/Documents/${safe}`;
+    await putObject(key, file.buffer, file.mimetype);
+
+    // Best-effort: record it in the CRM so staff see the upload (needs portal_rw).
+    if (crmWriteEnabled()) {
+      try { await insertClientDocument(req.contact, file.originalname, file.size, key, documentType); }
+      catch (e) { console.warn("[upload] documents insert failed:", e.message); }
+    }
+
+    const ext = (file.originalname.split(".").pop() || "").toLowerCase();
+    res.json({
+      success: true,
+      requirementUpdated: null,
+      message: "Document uploaded. Thank you.",
+      document: {
+        id: Buffer.from(key).toString("base64url"),
+        name: file.originalname,
+        mime: file.mimetype || "application/octet-stream",
+        fileSize: file.size,
+        documentType,
+        uploadedOn: new Date().toISOString(),
+        status: "received",
+        kind: IMG_EXT.includes(ext) ? "image" : "pdf",
+        url: await presignGet(key),
+      },
+    });
   } catch (err) {
     next(err);
   }

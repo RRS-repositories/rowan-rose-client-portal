@@ -33,3 +33,23 @@ export async function crmQuery(text, params) {
   if (!pool) throw new Error("CRM_DATABASE_URL not configured");
   return pool.query(text, params);
 }
+
+// ── Limited write connection (document uploads only) ─────────────────────────
+// Uses CRM_WRITE_DATABASE_URL → the portal_rw role, which can only INSERT into
+// documents (and tick required_documents). Everything else stays read-only.
+let crmWritePool = null;
+export const crmWriteEnabled = () => Boolean(process.env.CRM_WRITE_DATABASE_URL);
+
+function getWritePool() {
+  if (!crmWriteEnabled()) return null;
+  if (!crmWritePool) {
+    crmWritePool = new Pool({ connectionString: process.env.CRM_WRITE_DATABASE_URL, max: 4, idleTimeoutMillis: 30_000 });
+  }
+  return crmWritePool;
+}
+
+export async function crmWriteQuery(text, params) {
+  const pool = getWritePool();
+  if (!pool) throw new Error("CRM_WRITE_DATABASE_URL not configured");
+  return pool.query(text, params);
+}
