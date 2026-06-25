@@ -10,10 +10,13 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { crmEnabled } from "../crmdb.js";
+import { query } from "../db.js";
+import { hashPassword, verifyPassword } from "../lib/auth.js";
 import {
   getClaimsByContactId,
   getClaimById,
   getRequirementsByContactId,
+  getDocumentsByContactId,
 } from "../crm/repo.js";
 
 export const clientRouter = Router();
@@ -37,12 +40,13 @@ clientRouter.get("/bootstrap", async (req, res, next) => {
   try {
     const u = req.user;
     const parts = String(u.full_name).trim().split(/\s+/);
-    const [claims, requirements] = crmEnabled() && req.contact
+    const [claims, requirements, documents] = crmEnabled() && req.contact
       ? await Promise.all([
           getClaimsByContactId(req.contact.id),
           getRequirementsByContactId(req.contact.id),
+          getDocumentsByContactId(req.contact.id),
         ])
-      : [[], []];
+      : [[], [], []];
     res.json({
       client: {
         id: u.client_id || (req.contact ? req.contact.client_id || "" : ""),
@@ -52,7 +56,7 @@ clientRouter.get("/bootstrap", async (req, res, next) => {
         lastName: parts.slice(1).join(" "),
         claims,
         requirements,
-        documents: [],
+        documents,
       },
     });
   } catch (err) {
@@ -86,6 +90,35 @@ clientRouter.get("/requirements", async (req, res, next) => {
     if (!crmEnabled() || !req.contact) return res.json({ requirements: [] });
     const requirements = await getRequirementsByContactId(req.contact.id);
     res.json({ requirements });
+  } catch (err) {
+    next(err);
+  }
+});
+
+clientRouter.get("/documents", async (req, res, next) => {
+  try {
+    if (!crmEnabled() || !req.contact) return res.json([]);
+    res.json(await getDocumentsByContactId(req.contact.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Change password for the logged-in client (replaces the default DOB password). */
+clientRouter.post("/change-password", async (req, res, next) => {
+  try {
+    const currentPassword = String(req.body?.currentPassword || "");
+    const newPassword = String(req.body?.newPassword || "");
+    const { rows } = await query("SELECT password_hash FROM users WHERE id = $1", [req.user.id]);
+    if (!rows[0] || !(await verifyPassword(currentPassword, rows[0].password_hash))) {
+      return res.json({ success: false, message: "Your current password is incorrect." });
+    }
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return res.json({ success: false, message: "New password must be 8+ characters with upper, lower and a number." });
+    }
+    const hash = await hashPassword(newPassword);
+    await query("UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2", [hash, req.user.id]);
+    res.json({ success: true, message: "Password changed successfully." });
   } catch (err) {
     next(err);
   }

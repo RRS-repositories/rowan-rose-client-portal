@@ -45,7 +45,7 @@ export function updateNotificationPreferences(prefs: NotificationPreferences): P
 }
 
 export function changePassword(data: ChangePasswordRequest): Promise<ChangePasswordResponse> {
-  return USE_MOCKS ? mock.changePassword(data) : apiClient.post<ChangePasswordResponse>("/client/change-password", data);
+  return PROFILE_REAL ? apiClient.post<ChangePasswordResponse>("/client/change-password", data) : mock.changePassword(data);
 }
 
 export function logoutAllDevices(): Promise<SimpleSuccessResponse> {

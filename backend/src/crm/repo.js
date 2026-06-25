@@ -165,6 +165,56 @@ export async function getClaimById(contactId, claimKey) {
 
 // ── Requirements (outstanding documents) ────────────────────────────────────
 
+// ── Documents ───────────────────────────────────────────────────────────────
+
+const DOC_TYPE = {
+  "id document": "id", id: "id", identification: "id",
+  "proof of address": "address", poa: "address",
+  "bank statement": "bank-statement",
+};
+const extMime = (ext, type) => {
+  const e = String(ext || "").toLowerCase().replace(/^\./, "");
+  if (["jpg", "jpeg", "png", "gif", "webp"].includes(e) || type === "image") return `image/${e || "jpeg"}`;
+  if (e === "pdf" || type === "pdf") return "application/pdf";
+  if (["doc", "docx"].includes(e) || type === "docx") return "application/msword";
+  return "application/octet-stream";
+};
+const DOC_STATUS = { uploaded: "received", completed: "verified", received: "received", rejected: "rejected" };
+
+/**
+ * Client-visible documents only. Excludes the ~397k internal "Draft" docs
+ * (firm-generated LOAs/cover/complaint letters), deleted/archived files, and
+ * anything in hidden_documents. Shows the client's own uploads + completed docs.
+ */
+export async function getDocumentsByContactId(contactId) {
+  const { rows } = await crmQuery(
+    `SELECT d.id, d.name, d.category, d.type, d.file_extension, d.file_size_bytes,
+            d.document_status, d.lender, d.created_at
+       FROM public.documents d
+      WHERE d.contact_id = $1
+        AND COALESCE(d.is_deleted, false) = false
+        AND COALESCE(d.archived, false) = false
+        AND lower(COALESCE(d.document_status, '')) IN ('uploaded', 'completed', 'received')
+        AND NOT EXISTS (
+          SELECT 1 FROM public.hidden_documents h
+           WHERE h.contact_id = d.contact_id AND h.s3_key = d.s3_key
+        )
+      ORDER BY d.created_at DESC`,
+    [contactId],
+  );
+  return rows.map((d) => ({
+    id: String(d.id),
+    name: d.name || "Document",
+    mime: extMime(d.file_extension, d.type),
+    fileSize: Number(d.file_size_bytes) || 0,
+    documentType: DOC_TYPE[String(d.category || "").toLowerCase()] || "other",
+    uploadedOn: iso(d.created_at) || "",
+    status: DOC_STATUS[String(d.document_status || "").toLowerCase()] || "received",
+    lenderName: d.lender || undefined,
+    kind: String(d.type || "").toLowerCase() === "image" ? "image" : "pdf",
+  }));
+}
+
 const REQ_KIND = {
   id: "id",
   identification: "id",
