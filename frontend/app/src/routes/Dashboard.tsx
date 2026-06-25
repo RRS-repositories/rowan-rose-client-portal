@@ -164,7 +164,7 @@ export default function Dashboard() {
           <>
             {(data.contactId != null || data.clientId) && (
               <p className="mb-sm font-body-sm text-body-sm text-on-surface-variant/70">
-                {data.clientId ? `Client ID ${data.clientId}` : "No client ID assigned"} · CRM contact #{data.contactId ?? "—"}
+                Client ID {data.clientId || data.contactId || "—"}
               </p>
             )}
             {/* ===== MOBILE ===== */}
