@@ -85,6 +85,10 @@ export interface UploadResponse {
 
 export interface Client {
   id: string;
+  /** CRM client reference (e.g. RR-676687-554); empty until assigned. */
+  clientId?: string;
+  /** CRM contacts.id the portal account links to (support/debugging). */
+  contactId?: number | null;
   firstName: string;
   lastName: string;
   claims: Claim[];

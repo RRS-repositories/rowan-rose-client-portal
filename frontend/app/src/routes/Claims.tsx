@@ -50,9 +50,16 @@ export default function Claims() {
         <header className="mb-md">
           <h1 className="hidden font-display-lg-mobile text-display-lg text-on-surface md:block">Your Claims</h1>
           {!loading && data && (
-            <p className="mt-1 font-body-lg text-body-lg text-on-surface-variant">
-              {counts.all} {counts.all === 1 ? "claim" : "claims"} · {counts.progress} in progress · {counts.completed} completed · {gbp(recovered)} recovered
-            </p>
+            <>
+              <p className="mt-1 font-body-lg text-body-lg text-on-surface-variant">
+                {counts.all} {counts.all === 1 ? "claim" : "claims"} · {counts.progress} in progress · {counts.completed} completed · {gbp(recovered)} recovered
+              </p>
+              {(data.contactId != null || data.clientId) && (
+                <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant/70">
+                  {data.clientId ? `Client ID ${data.clientId}` : "No client ID assigned"} · CRM contact #{data.contactId ?? "—"}
+                </p>
+              )}
+            </>
           )}
         </header>
 

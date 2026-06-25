@@ -46,6 +46,8 @@ clientRouter.get("/bootstrap", async (req, res, next) => {
     res.json({
       client: {
         id: u.client_id || (req.contact ? req.contact.client_id || "" : ""),
+        clientId: u.client_id || (req.contact ? req.contact.client_id || "" : ""),
+        contactId: req.contact ? req.contact.id : null,
         firstName: parts[0] ?? "",
         lastName: parts.slice(1).join(" "),
         claims,

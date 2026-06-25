@@ -173,16 +173,23 @@ const REQ_KIND = {
   "extra lender": "extra-lender",
 };
 
-/** Outstanding (is_satisfied = false) requirements for a contact. */
+/** Outstanding (is_satisfied = false) requirements for a contact. Requirements
+ *  tied to a claim that is hidden (e.g. Not Qualified) are dropped, so the
+ *  client never sees document asks for a claim they can't see. Client-level
+ *  requirements (no claim_id) are always kept. */
 export async function getRequirementsByContactId(contactId) {
   const { rows } = await crmQuery(
-    `SELECT id, claim_id, lender, category, is_satisfied, created_at
-       FROM public.required_documents
-      WHERE contact_id = $1 AND COALESCE(is_satisfied, false) = false
-      ORDER BY created_at ASC`,
+    `SELECT rd.id, rd.claim_id, rd.lender, rd.category, rd.is_satisfied, rd.created_at,
+            k.status AS case_status
+       FROM public.required_documents rd
+       LEFT JOIN public.cases k ON k.id = rd.claim_id
+      WHERE rd.contact_id = $1 AND COALESCE(rd.is_satisfied, false) = false
+      ORDER BY rd.created_at ASC`,
     [contactId],
   );
-  return rows.map((r) => {
+  return rows
+    .filter((r) => r.claim_id == null || mapStatus(r.case_status) !== null)
+    .map((r) => {
     const kind = REQ_KIND[String(r.category || "").toLowerCase()] || "questionnaire";
     return {
       id: String(r.id),
