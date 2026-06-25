@@ -114,6 +114,17 @@ const RAW_MAP = {
   "temp": null,
   "temporary hold": null,
   "pre verification": null,
+
+  // ── Real-data variants (cases.status drifts from the claim_statuses table) ──
+  "i.d request sent": "Documents Required",
+  "lender selection form completed": "Onboarding",
+  "fee deducted": "Fee Deducted",
+  "offer under negotiation": "Offer Received",
+  // Known junk / staff-only test values — explicitly hidden to keep logs quiet.
+  "loa signature error - manual review": null,
+  "awaiting callback": null,
+  "select t": null,
+  "test": null,
 };
 
 /** Statuses (mapped, client-facing) that count as "escalated to the Ombudsman". */
