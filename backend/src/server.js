@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { authRouter } from "./routes/auth.js";
+import { clientRouter } from "./routes/client.js";
 import { pool } from "./db.js";
 
 const app = express();
@@ -20,6 +21,7 @@ app.get("/health", async (_req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/client", clientRouter);
 
 // Plain-English JSON errors (never leak stack traces to the client).
 // eslint-disable-next-line no-unused-vars
