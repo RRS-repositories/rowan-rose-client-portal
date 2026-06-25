@@ -27,14 +27,18 @@ export async function getContactByClientId(clientId) {
   return rows[0] ?? null;
 }
 
-/** All CRM contacts with this email (usually one). Used by login auto-provision
- *  to find the contact whose DOB matches the supplied default password. */
+/** CRM contacts with this email. When a client is duplicated in the CRM, the
+ *  rows are ordered so the FIRST is the best one to use: most claims first, then
+ *  the most recently created. Callers `.find()` the DOB match, which therefore
+ *  lands on the max-claims / latest contact. */
 export async function getContactsByEmail(email) {
   if (!email) return [];
   const { rows } = await crmQuery(
-    `SELECT id, client_id, first_name, last_name, full_name, email, phone, dob
-       FROM public.contacts
-      WHERE lower(email) = lower($1) AND COALESCE(is_deleted, false) = false`,
+    `SELECT c.id, c.client_id, c.first_name, c.last_name, c.full_name, c.email, c.phone, c.dob,
+            (SELECT count(*) FROM public.cases k WHERE k.contact_id = c.id) AS claim_count
+       FROM public.contacts c
+      WHERE lower(c.email) = lower($1) AND COALESCE(c.is_deleted, false) = false
+      ORDER BY claim_count DESC, c.created_at DESC NULLS LAST, c.id DESC`,
     [email],
   );
   return rows;
