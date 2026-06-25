@@ -21,6 +21,17 @@ export function verifyToken(token, expectedScope) {
 
 export const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 
+/** Default first-time password = DOB as DDMMYYYY (e.g. 15 Jan 2002 → "15012002").
+ *  Used to let any CRM client log in with email + DOB before they set their own. */
+export function defaultPasswordFromDob(dob) {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (Number.isNaN(d.getTime())) return null;
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${dd}${mm}${d.getUTCFullYear()}`;
+}
+
 /** Map a DB user row to the AuthUser shape the frontend expects. */
 export function toAuthUser(row) {
   const parts = String(row.full_name).trim().split(/\s+/);

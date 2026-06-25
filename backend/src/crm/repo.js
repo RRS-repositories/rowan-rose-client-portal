@@ -27,6 +27,19 @@ export async function getContactByClientId(clientId) {
   return rows[0] ?? null;
 }
 
+/** All CRM contacts with this email (usually one). Used by login auto-provision
+ *  to find the contact whose DOB matches the supplied default password. */
+export async function getContactsByEmail(email) {
+  if (!email) return [];
+  const { rows } = await crmQuery(
+    `SELECT id, client_id, first_name, last_name, full_name, email, phone, dob
+       FROM public.contacts
+      WHERE lower(email) = lower($1) AND COALESCE(is_deleted, false) = false`,
+    [email],
+  );
+  return rows;
+}
+
 /**
  * Match a registering client against CRM records (first/last/dob/email).
  * Returns the contact's client_id on a confident match, else null. Used by
