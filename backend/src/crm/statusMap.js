@@ -1,54 +1,59 @@
 /**
  * CRM raw status  →  client-facing InternalStatus  (read-only integration).
  *
- * The live CRM (`public.claim_statuses`) has 80+ internal statuses. The portal
- * frontend only understands the 20 `InternalStatus` values in
- * frontend/app/src/data/types.ts, which it maps to a ClaimPhase + plain-English
- * message via statusMap.ts. This file is the bridge.
+ * The live CRM has 80+ internal statuses. The portal frontend understands the
+ * 20 `InternalStatus` values in frontend/app/src/data/types.ts, which it maps to
+ * a ClaimPhase + plain-English message (statusMap.ts). This file is the bridge.
  *
- * SECURITY: statuses that must NEVER reach a client (leads/sales, internal
- * review, "weak case", debt-chasing, dedup, error states) map to `null`.
- * A claim whose status maps to null is filtered OUT of the client's claim list
- * server-side — the sensitive status string never leaves this server.
+ * VISIBILITY POLICY (Brad, 2026-06-25): show EVERY claim — nothing is hidden.
+ * BUT we never leak the raw internal status to the client: each CRM status is
+ * mapped to a safe client-facing phase. Dead/rejected/sensitive statuses
+ * (Not Qualified, Weak Case Cannot Continue, Timebarred, duplicates) map to
+ * "Claim Closed" so the client just sees a neutral "this claim is closed"
+ * rather than the harsh internal wording. Lead/intake stages map to
+ * "Onboarding" (Getting Started). This keeps the portal's claim list aligned
+ * with the CRM while protecting the client from internal language.
  *
- * NOTE FOR BRAD/HANDLERS: these mappings are product/comms decisions. They're
- * a best-effort default — review and adjust. Unknown/new CRM statuses default
- * to HIDDEN (safe) and are logged so we notice and classify them.
+ * NOTE: these mappings are product/comms decisions — review and adjust freely.
  */
 
-/** @type {Record<string, string|null>} keyed by lower-cased, trimmed CRM status. */
+const ONBOARDING = "Onboarding";
+const DOCS = "Documents Required";
+const CLOSED = "Claim Closed";
+
+/** @type {Record<string, string>} keyed by lower-cased, trimmed CRM status. */
 const RAW_MAP = {
-  // ── Stage 1: leads / sale / intake — HIDDEN (not yet a real, signed client) ──
-  "new lead": null,
-  "new facebook lead": null,
-  "contact attempted": null,
-  "not qualified": null,
-  "sale": null,
-  "overdraft claim sent": null,
-  "scam claim sent": null,
-  "ccj claim sent": null,
-  "pba claim sent": null,
-  "bank gambling claim sent": null,
-  "h&t pledge claim sent": null,
-  "loa sent": "Onboarding",
+  // ── Stage 1: leads / sale / intake → Getting Started ──
+  "new lead": ONBOARDING,
+  "new facebook lead": ONBOARDING,
+  "contact attempted": ONBOARDING,
+  "not qualified": CLOSED,
+  "sale": ONBOARDING,
+  "overdraft claim sent": ONBOARDING,
+  "scam claim sent": ONBOARDING,
+  "ccj claim sent": ONBOARDING,
+  "pba claim sent": ONBOARDING,
+  "bank gambling claim sent": ONBOARDING,
+  "h&t pledge claim sent": ONBOARDING,
+  "loa sent": ONBOARDING,
 
   // ── Stage 2: onboarding ──
-  "resend loa": "Onboarding",
-  "loa uploaded": "Onboarding",
-  "loa signed": "Onboarding",
-  "id request sent": "Documents Required",
-  "id verification pending": "Documents Required",
-  "poa required": "Documents Required",
-  "extra lender selection form sent": "Documents Required",
-  "extra lender selection form completed": "Onboarding",
-  "questionnaire sent": "Documents Required",
-  "questionnaire completed": "Onboarding",
-  "onboarding complete": "Onboarding",
-  "dsar prepare error - manual review": null,
+  "resend loa": ONBOARDING,
+  "loa uploaded": ONBOARDING,
+  "loa signed": ONBOARDING,
+  "id request sent": DOCS,
+  "id verification pending": DOCS,
+  "poa required": DOCS,
+  "extra lender selection form sent": DOCS,
+  "extra lender selection form completed": ONBOARDING,
+  "questionnaire sent": DOCS,
+  "questionnaire completed": ONBOARDING,
+  "onboarding complete": ONBOARDING,
+  "dsar prepare error - manual review": "DSAR Sent",
 
   // ── Stage 3: DSAR (investigation) ──
   "dsar prepared": "DSAR Sent",
-  "dsar prepared awaiting i.d": "Documents Required",
+  "dsar prepared awaiting i.d": DOCS,
   "dsar sent to lender": "DSAR Sent",
   "unable to locate": "DSAR Chased",
   "unable to locate account number": "DSAR Chased",
@@ -57,24 +62,24 @@ const RAW_MAP = {
   "dsar response received": "DSAR Received",
   "dsar escalated (ico)": "DSAR Chased",
   "dsar review completed": "DSAR Received",
-  "weak case cannot continue": null,
+  "weak case cannot continue": CLOSED,
   "missing data from dsar": "DSAR Received",
-  "timebarred": null,
-  "dsar review error - manual review": null,
+  "timebarred": CLOSED,
+  "dsar review error - manual review": "DSAR Received",
 
   // ── Stage 4: complaint ──
   "complaint drafted": "Complaint Submitted",
-  "complaint drafted awaiting questionnaire": "Documents Required",
+  "complaint drafted awaiting questionnaire": DOCS,
   "complaint submitted": "Complaint Submitted",
   "complaint overdue": "Complaint Chased",
   "upheld": "FRL Received",
   "not upheld": "FRL Received",
   "bank statements requested": "Awaiting Bank Statements",
-  "counter team": null,
+  "counter team": "Counter Response Sent",
   "counter response sent": "Counter Response Sent",
   "frl received": "FRL Received",
-  "frl extraction error": null,
-  "complaint draft error - manual review": null,
+  "frl extraction error": "FRL Received",
+  "complaint draft error - manual review": "Complaint Submitted",
 
   // ── Stage 5: FOS (ombudsman) ──
   "fos acceptance form sent": "FOS Submitted",
@@ -88,63 +93,64 @@ const RAW_MAP = {
 
   // ── Stage 6: offer / settlement / payment ──
   "offer received": "Offer Received",
+  "offer under negotiation": "Offer Received",
   "offer accepted": "Offer Accepted",
   "awaiting payment": "Offer Accepted",
   "awaiting payment - upheld": "Offer Accepted",
   "payment received": "Payment Received",
   "payment received verification": "Payment Received",
-  "payment error - manual review": null,
+  "payment error - manual review": "Payment Received",
   "invoice generated": "Fee Deducted",
+  "fee deducted": "Fee Deducted",
   "client paid": "Client Paid",
-  "claim unsuccessful": "Claim Closed",
-  "claim withdrawn": "Claim Closed",
+  "claim unsuccessful": CLOSED,
+  "claim withdrawn": CLOSED,
 
-  // ── Stage 7: debt / fee collection — HIDDEN (delicate, staff-handled) ──
-  "debt contact required": null,
-  "failed payment plan": null,
-  "debt letter sent": null,
+  // ── Stage 7: debt / fee collection ──
   "irl/payments/cancellation fee paid": "Client Paid",
-  "chasing debt": null,
-  "payment plan setup": null,
   "payment plan completed": "Client Paid",
+  "payment plan setup": "Client Paid",
+  "debt contact required": CLOSED,
+  "failed payment plan": CLOSED,
+  "debt letter sent": CLOSED,
+  "chasing debt": CLOSED,
 
-  // ── Stage 8 / misc — HIDDEN ──
-  "deduplicate claim - cannot continue": null,
-  "manual review - possible duplicate": null,
-  "temp": null,
-  "temporary hold": null,
-  "pre verification": null,
+  // ── Stage 8 / misc ──
+  "deduplicate claim - cannot continue": CLOSED,
+  "manual review - possible duplicate": CLOSED,
+  "temp": ONBOARDING,
+  "temporary hold": ONBOARDING,
+  "pre verification": ONBOARDING,
 
   // ── Real-data variants (cases.status drifts from the claim_statuses table) ──
-  "i.d request sent": "Documents Required",
-  "lender selection form completed": "Onboarding",
-  "fee deducted": "Fee Deducted",
-  "offer under negotiation": "Offer Received",
-  // Known junk / staff-only test values — explicitly hidden to keep logs quiet.
-  "loa signature error - manual review": null,
-  "awaiting callback": null,
-  "select t": null,
-  "test": null,
+  "i.d request sent": DOCS,
+  "lender selection form completed": ONBOARDING,
+  "loa signature error - manual review": ONBOARDING,
+  "awaiting callback": ONBOARDING,
+  "select t": ONBOARDING,
+  "test": ONBOARDING,
 };
 
 /** Statuses (mapped, client-facing) that count as "escalated to the Ombudsman". */
 const FOS_STATUSES = new Set(["FOS Submitted", "FOS Awaiting Decision", "FOS Chased"]);
 
+/** Unknown/new CRM statuses default to a safe generic phase (and are logged). */
+const DEFAULT_STATUS = ONBOARDING;
 const seenUnknown = new Set();
 
 /**
- * Map a raw CRM status string to a client-facing InternalStatus.
- * Returns null when the status is hidden (claim should be filtered out).
- * Unknown statuses are treated as hidden and logged once.
+ * Map a raw CRM status string to a client-facing InternalStatus. Never returns
+ * null under the show-everything policy: unknown statuses fall back to a safe
+ * generic phase and are logged once so we can classify them.
  */
 export function mapStatus(rawStatus) {
   const key = String(rawStatus || "").trim().toLowerCase();
   if (key in RAW_MAP) return RAW_MAP[key];
   if (key && !seenUnknown.has(key)) {
     seenUnknown.add(key);
-    console.warn(`[crm] unmapped status "${rawStatus}" → hidden. Add it to statusMap.js.`);
+    console.warn(`[crm] unmapped status "${rawStatus}" → ${DEFAULT_STATUS}. Add it to statusMap.js.`);
   }
-  return null;
+  return DEFAULT_STATUS;
 }
 
 export const isEscalatedStatus = (internalStatus) => FOS_STATUSES.has(internalStatus);
