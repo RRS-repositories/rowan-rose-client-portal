@@ -11,11 +11,12 @@ import { useToast } from "@/components/ui/useToast";
 import { RequirementsGrid } from "@/components/documents/RequirementsGrid";
 import { DocumentTypeSelector } from "@/components/documents/DocumentTypeSelector";
 import { DocumentUpload, type DocumentUploadHandle } from "@/components/documents/DocumentUpload";
-import { DocumentsList } from "@/components/documents/DocumentsList";
 import { LegalFooter } from "./Dashboard";
 import { useMockQuery } from "@/data/useMockQuery";
 import { getClient } from "@/data/mock";
 import type { DocumentType, Requirement, RequirementKind, UploadedDoc } from "@/data/types";
+// Note: the "Your Documents" list was intentionally removed — clients only send
+// documents, they don't review them here. Uploads still post to the backend.
 
 /** Requirement kind → the document type to pre-select on the upload form. */
 const docTypeForKind = (kind: RequirementKind): DocumentType | "" =>
@@ -32,15 +33,6 @@ function RequirementsSkeleton() {
   );
 }
 
-function DocumentsSkeleton() {
-  return (
-    <div aria-hidden className="space-y-sm">
-      <Skeleton className="h-12 w-full rounded-xl" />
-      {[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
-    </div>
-  );
-}
-
 export default function Documents() {
   const { loading, data, error, refetch } = useMockQuery(getClient, "client");
   const { push } = useToast();
@@ -48,7 +40,6 @@ export default function Documents() {
   const highlightParam = searchParams.get("highlight");
 
   const [requirements, setRequirements] = useState<Requirement[]>([]);
-  const [documents, setDocuments] = useState<UploadedDoc[]>([]);
   const [selectedType, setSelectedType] = useState<DocumentType | "">("");
   const [typeError, setTypeError] = useState<string | null>(null);
   // The specific requirement an upload should satisfy — set when launched from a
@@ -62,7 +53,7 @@ export default function Documents() {
 
   // Seed local state from the query so uploads can update it optimistically.
   useEffect(() => {
-    if (data) { setRequirements(data.requirements); setDocuments(data.documents); }
+    if (data) setRequirements(data.requirements);
   }, [data]);
 
   // Resolve a ?highlight=<requirementId> deep link once requirements load:
@@ -92,7 +83,7 @@ export default function Documents() {
     window.setTimeout(() => uploadHandle.current?.focusZone(), 320);
   }
 
-  function handleUploaded(doc: UploadedDoc, requirementUpdated: RequirementKind | null) {
+  function handleUploaded(_doc: UploadedDoc, requirementUpdated: RequirementKind | null) {
     // Pick the requirement this upload satisfies: the targeted one if it matches,
     // else the sole outstanding requirement of that kind (ID / Proof of Address are
     // unique; multiple lender bank statements need an explicit target).
@@ -101,8 +92,6 @@ export default function Documents() {
       const candidates = requirements.filter((r) => !r.done && r.kind === requirementUpdated);
       satisfied = candidates.find((r) => r.id === targetReqId) ?? (candidates.length === 1 ? candidates[0] : undefined);
     }
-    const finalDoc = satisfied?.lenderName ? { ...doc, lenderName: satisfied.lenderName } : doc;
-    setDocuments((cur) => [finalDoc, ...cur]);
 
     if (satisfied) {
       const { id, title } = satisfied;
@@ -124,7 +113,7 @@ export default function Documents() {
           </span>
           <div>
             <h1 className="font-display-lg-mobile text-display-lg text-on-surface">Documents</h1>
-            <p className="font-body-lg text-body-lg text-on-surface-variant">Send us what we've asked for, and review everything you've uploaded.</p>
+            <p className="font-body-lg text-body-lg text-on-surface-variant">Send us what we've asked for.</p>
           </div>
         </header>
 
@@ -152,13 +141,6 @@ export default function Documents() {
                 onRequireType={() => setTypeError("Please choose a document type before uploading.")}
                 onUploaded={handleUploaded}
               />
-            </section>
-
-            <hr className="border-outline-variant/30" />
-
-            <section aria-labelledby="docs-heading" className="space-y-md">
-              <h2 id="docs-heading" className="font-headline-md text-headline-md text-primary">Your Documents</h2>
-              {loading || !data ? <DocumentsSkeleton /> : <DocumentsList documents={documents} />}
             </section>
           </div>
         )}
