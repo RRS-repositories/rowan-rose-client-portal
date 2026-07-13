@@ -42,3 +42,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </ThemeProvider>
   </React.StrictMode>,
 );
+
+// Native (Capacitor) only: hide the launch splash once React has painted, so
+// there's no white flash between the native splash and first paint. No-op on
+// web — Capacitor.isNativePlatform() is false and the imports just resolve to
+// stubs. Dynamic so the web bundle isn't weighed down by native plugin code.
+void import("@capacitor/core").then(({ Capacitor }) => {
+  if (!Capacitor.isNativePlatform()) return;
+  void import("@capacitor/splash-screen").then(({ SplashScreen }) =>
+    requestAnimationFrame(() => void SplashScreen.hide()),
+  );
+});

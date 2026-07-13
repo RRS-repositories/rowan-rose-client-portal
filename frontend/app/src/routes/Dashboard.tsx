@@ -8,6 +8,7 @@ import { WhatWeNeedCard } from "@/components/dashboard/WhatWeNeedCard";
 import { ClaimSummaryCard } from "@/components/dashboard/ClaimSummaryCard";
 import { OfferBanner } from "@/components/dashboard/OfferBanner";
 import { QuickActions } from "@/components/dashboard/QuickActions";
+import { QuickLinks } from "@/components/dashboard/QuickLinks";
 import { Skeleton, SkeletonClaimCard } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
@@ -171,6 +172,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 gap-gutter">
                 {sorted.map((claim) => <ClaimSummaryCard key={claim.id} claim={claim} />)}
               </div>
+              <QuickLinks />
             </div>
 
             {/* ===== DESKTOP (rich dashboard) ===== */}
@@ -183,7 +185,13 @@ export default function Dashboard() {
                 </p>
               </header>
 
-              <motion.div variants={reduce ? undefined : listContainer} initial={reduce ? undefined : "hidden"} animate={reduce ? undefined : "show"} className="mb-gutter grid grid-cols-3 gap-gutter">
+              {/* Fluid grid: as many columns as fit, each ≥13rem. The min is in
+                  rem so it tracks the font slider — at large text the tiles wrap
+                  to fewer columns instead of crushing the text, and on a wide
+                  screen they stay compact rather than stretching full-width.
+                  min(100%,13rem) guarantees the track never exceeds the
+                  container, so it can't overflow on narrow viewports. */}
+              <motion.div variants={reduce ? undefined : listContainer} initial={reduce ? undefined : "hidden"} animate={reduce ? undefined : "show"} className="mb-gutter grid gap-gutter grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))]">
                 <motion.div variants={reduce ? undefined : listItem}><StatTile icon="account_balance_wallet" value={String(data.claims.length)} label="Claims with us" /></motion.div>
                 <motion.div variants={reduce ? undefined : listItem}><StatTile icon="assignment_late" value={String(outstanding.length)} label="Items to send us" /></motion.div>
                 <motion.div variants={reduce ? undefined : listItem}><StatTile icon="payments" value={gbp(recovered)} label="Recovered for you so far" /></motion.div>
@@ -195,18 +203,22 @@ export default function Dashboard() {
                 </div>
               )}
 
-              <div className="grid grid-cols-12 gap-gutter">
-                <div className="col-span-8 space-y-md">
+              {/* At extra-large text the px breakpoints can't see the font slider,
+                  so the 8/4 split would crush both columns. Collapse to a single
+                  column and float "What We Need" to the top (UX Rule #1). */}
+              <div className="grid grid-cols-12 gap-gutter tscale-xl:grid-cols-1">
+                <div className="col-span-8 space-y-md tscale-xl:order-2">
                   <h2 className="font-headline-md text-headline-md text-on-surface">Your Active Claims</h2>
-                  <div className="grid grid-cols-1 gap-gutter xl:grid-cols-2">
+                  <div className="grid gap-gutter grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))]">
                     {sorted.map((claim) => <ClaimSummaryCard key={claim.id} claim={claim} />)}
                   </div>
                   <QuickActions />
                   <RecentUpdates client={data} />
                 </div>
-                <div className="col-span-4 space-y-md">
+                <div className="col-span-4 space-y-md tscale-xl:order-1">
                   <WhatWeNeedCard requirements={outstanding} />
                   <HelpCard />
+                  <QuickLinks />
                 </div>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { ClaimProgressMini } from "@/components/claim/ClaimProgressMini";
 import { phaseOf } from "@/data/statusMap";
 import { relativeDays } from "@/lib/format";
 import type { Claim } from "@/data/types";
@@ -9,7 +10,7 @@ import type { Claim } from "@/data/types";
  *  unread-messages pill (when present) jumps straight to /chat/:claimId rather
  *  than the claim detail view; it sits beside the status pill and uses
  *  stopPropagation so the surrounding Link doesn't fire. */
-export function ClaimSummaryCard({ claim }: { claim: Claim }) {
+export function ClaimSummaryCard({ claim, showProgress = false }: { claim: Claim; showProgress?: boolean }) {
   const navigate = useNavigate();
   const phase = phaseOf(claim);
   const isOffer = phase === "Offer Received";
@@ -23,14 +24,14 @@ export function ClaimSummaryCard({ claim }: { claim: Claim }) {
       className="block rounded-[20px]"
     >
       <div className="skeuo-card skeuo-card-interactive flex flex-col gap-sm rounded-[20px] p-md">
-        <div className="flex items-start justify-between gap-sm">
-          <div className="flex min-w-0 items-center gap-sm">
+        <div className="flex flex-wrap items-start justify-between gap-sm">
+          <div className="flex min-w-0 flex-1 basis-40 items-center gap-sm">
             <span className="grid h-12 w-12 flex-none place-items-center rounded-xl border border-outline-variant/20 bg-surface-container-lowest text-primary skeuo-inner-highlight">
               <Icon name={claim.lender.icon} size={26} />
             </span>
             <div className="min-w-0">
-              <h3 className="truncate font-button text-button text-on-surface">{claim.lender.name}</h3>
-              <p className="font-mono text-label text-on-surface-variant">{claim.id}</p>
+              <h3 className="font-button text-button text-on-surface break-words">{claim.lender.name}</h3>
+              <p className="font-mono text-label text-on-surface-variant break-all">{claim.id}</p>
             </div>
           </div>
           <div className="flex flex-none flex-col items-end gap-1">
@@ -52,8 +53,9 @@ export function ClaimSummaryCard({ claim }: { claim: Claim }) {
             )}
           </div>
         </div>
-        <div className="flex h-12 items-center justify-between gap-sm rounded-xl bg-surface-container-lowest px-sm skeuo-recessed">
-          <span className={isOffer ? "truncate font-button text-label text-primary" : "truncate font-body text-label text-on-surface-variant"}>
+        {showProgress && <ClaimProgressMini current={phase} escalated={claim.escalated} />}
+        <div className="flex min-h-[48px] items-center justify-between gap-sm rounded-xl bg-surface-container-lowest px-sm py-2 skeuo-recessed">
+          <span className={isOffer ? "min-w-0 break-words font-button text-label text-primary" : "min-w-0 break-words font-body text-label text-on-surface-variant"}>
             {isOffer ? "Action required: review your offer" : `Last updated ${relativeDays(lastUpdated)}`}
           </span>
           <Icon name="chevron_right" size={22} className={isOffer ? "text-primary" : "text-on-surface-variant"} />

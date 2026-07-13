@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 
 /**
- * Compact menu of common-but-rare account actions. Lives on the right column
- * of /profile so the page becomes a one-stop hub without crowding the main
- * Personal Details surface. Each row is ≥48px tall (touch-target floor).
+ * Compact menu of common-but-rare account actions. Sits at the bottom of the
+ * dashboard on mobile and in the right rail on desktop, so the home screen is a
+ * one-stop hub. Each row is ≥48px tall (touch-target floor).
  */
 
 interface QuickLink {

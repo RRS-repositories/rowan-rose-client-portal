@@ -138,8 +138,15 @@
 /* "VFD power-down" theme switch — the background snaps instantly (the device's
    power dropping), while text, borders and glowing accents lag and settle on a
    long ease-out-expo curve (phosphor decay). Applied only during a switch. */
+/* `:not([data-rr-motion])` excludes Framer Motion's page-transition wrapper.
+   This rule's `transition: … !important` would otherwise override the inline
+   `transition` Framer sets on the exiting page, stripping opacity/transform from
+   it — the value then jumps with no `transitionend`, so Framer's exit never
+   "completes" and AnimatePresence (mode="wait") deadlocks: the next page never
+   mounts and the screen goes blank. Skipping the animated wrapper keeps the
+   theme crossfade everywhere else while letting page transitions complete. */
 .vfd,
-.vfd *,
+.vfd *:not([data-rr-motion]),
 .vfd *::before,
 .vfd *::after {
   transition:

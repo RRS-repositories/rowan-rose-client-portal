@@ -17,7 +17,10 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         style={{ background: "radial-gradient(70% 55% at 50% 0%, rgb(var(--c-primary) / 0.10), transparent 70%)" }}
       />
 
-      <div className="absolute right-4 top-4 z-10">
+      <div
+        className="absolute right-4 top-4 z-10"
+        style={{ top: "calc(env(safe-area-inset-top) + 1rem)" }}
+      >
         <SettingsMenu />
       </div>
 

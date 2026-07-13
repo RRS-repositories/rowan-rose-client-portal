@@ -2,7 +2,7 @@ import { Router } from "express";
 import { query } from "../db.js";
 import {
   hashPassword, verifyPassword, signToken, verifyToken,
-  generateOtp, toAuthUser, dobError,
+  generateOtp, toAuthUser, dobError, phoneError, normalizePhoneUK, ageFrom,
 } from "../lib/auth.js";
 
 export const authRouter = Router();
@@ -103,7 +103,8 @@ authRouter.post("/complete-registration", async (req, res) => {
   const pwErr = passwordError(password);
   if (pwErr) return res.json({ success: false, token: "", user: null, message: pwErr });
   if (!fullName || String(fullName).trim().length < 2) return res.json({ success: false, token: "", user: null, message: "Please enter your full name." });
-  if (!phone || String(phone).replace(/\D/g, "").length < 7) return res.json({ success: false, token: "", user: null, message: "Please enter a valid phone number." });
+  const phErr = phoneError(phone);
+  if (phErr) return res.json({ success: false, token: "", user: null, message: phErr });
   const dErr = dobError(dob);
   if (dErr) return res.json({ success: false, token: "", user: null, message: dErr });
 
@@ -115,7 +116,7 @@ authRouter.post("/complete-registration", async (req, res) => {
   const { rows } = await query(
     `INSERT INTO users (email, password_hash, full_name, phone, dob)
      VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [email, hash, String(fullName).trim(), String(phone).trim(), dob],
+    [email, hash, String(fullName).trim(), normalizePhoneUK(phone), dob],
   );
   const user = toAuthUser(rows[0]);
   const token = signToken({ scope: "session", sub: rows[0].id }, "2h");
@@ -128,6 +129,13 @@ authRouter.post("/login", async (req, res) => {
   const user = await findUserByEmail(email);
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     return res.json({ success: false, token: "", user: null, message: "Invalid email or password." });
+  }
+  // Age gate: a client must be 18+ to access the portal, re-checked at every
+  // login (not just registration). Only blocks a confirmed under-18 DOB; a
+  // missing/unparseable DOB does not lock an existing client out.
+  const age = ageFrom(user.dob);
+  if (age !== null && age < 18) {
+    return res.json({ success: false, token: "", user: null, message: "You must be 18 or older to use the portal." });
   }
   const token = signToken({ scope: "session", sub: user.id }, "2h");
   res.json({ success: true, token, user: toAuthUser(user), message: "Login successful." });

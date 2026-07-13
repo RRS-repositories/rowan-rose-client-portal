@@ -73,15 +73,21 @@ export function PersonalDetails({ profile, loading }: Props) {
 
       <p className="mt-md flex items-start gap-1.5 border-t border-outline-variant/30 pt-sm font-body text-label font-normal text-on-surface-variant">
         <Icon name="info" size={16} className="mt-0.5 flex-none" />
-        Need to update your details? Email us at{" "}
-        <a href="mailto:contact@rowanrose.co.uk" className="text-primary hover:underline">
-          contact@rowanrose.co.uk
-        </a>{" "}
-        or call{" "}
-        <a href="tel:01615050150" className="text-primary hover:underline">
-          0161 505 0150
-        </a>
-        .
+        <span className="min-w-0">
+          Need to update your details?
+          <span className="mt-0.5 block">
+            Email us at{" "}
+            <a href="mailto:irl@rowanrose.co.uk" className="break-all text-primary hover:underline">
+              irl@rowanrose.co.uk
+            </a>
+          </span>
+          <span className="block">
+            or call{" "}
+            <a href="tel:01615050150" className="text-primary hover:underline">
+              0161 505 0150
+            </a>
+          </span>
+        </span>
       </p>
     </section>
   );

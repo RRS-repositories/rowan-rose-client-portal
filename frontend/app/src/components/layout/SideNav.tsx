@@ -25,16 +25,16 @@ export function SideNav() {
   const { requestLogout } = useAuth();
   const { unreadCount } = useNotifications();
   return (
-    <aside className="sticky top-0 z-40 hidden h-dvh flex-none md:block md:w-20 lg:w-[264px]">
+    <aside className="sticky top-0 z-40 hidden h-dvh flex-none md:block md:w-20 lg:w-[15rem]">
       <div
         className={cn(
           "group/nav absolute inset-y-0 left-0 z-30 flex h-dvh w-20 flex-col gap-md overflow-hidden",
           "border-r border-outline-variant/30 bg-surface p-3 transition-[width] duration-200 ease-out",
-          "hover:w-[264px] focus-within:w-[264px] hover:shadow-[8px_0_32px_rgba(0,0,0,0.18)]",
+          "hover:w-[15rem] focus-within:w-[15rem] hover:shadow-[8px_0_32px_rgba(0,0,0,0.18)]",
           // Desktop: drop the panel + border so the nav card and the footer
           // cards float separately on the ambient background — gives a clear
           // visual split between the top toggle and the bottom controls.
-          "lg:w-[264px] lg:border-transparent lg:bg-transparent lg:p-md lg:shadow-none lg:hover:shadow-none",
+          "lg:w-[15rem] lg:border-transparent lg:bg-transparent lg:p-md lg:shadow-none lg:hover:shadow-none",
           "motion-reduce:transition-none",
         )}
       >

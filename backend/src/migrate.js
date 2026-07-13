@@ -20,7 +20,7 @@ async function migrate() {
     await pool.query(
       `INSERT INTO users (email, password_hash, full_name, phone, dob, client_id)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [email, hash, "Sarah Holden", "07123 456 7890", "1985-04-12", "RR-676687-554"],
+      [email, hash, "Sarah Holden", "+447700900123", "1985-04-12", "RR-676687-554"],
     );
     console.log(`✔ seeded test user ${email} / Password1`);
   } else {

@@ -54,3 +54,6 @@ android/.gradle/
 .gradle/
 local.properties
 *.iml
+
+# local agent tooling (contains API keys)
+.codex/

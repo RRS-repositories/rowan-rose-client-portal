@@ -28,7 +28,7 @@ export function OfferBanner({ claim }: { claim: Claim }) {
         to={`/claims/${encodeURIComponent(claim.id)}`}
         className="flex min-h-[48px] flex-none items-center justify-center gap-xs rounded-lg bg-primary px-md font-button text-button text-on-primary skeuo-raise skeuo-press"
       >
-        Review your offer
+        Claim Progress
         <Icon name="arrow_forward" size={20} />
       </Link>
     </section>

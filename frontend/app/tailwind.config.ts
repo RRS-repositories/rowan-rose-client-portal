@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 /**
  * Modern Jurist — dual theme. Colour token NAMES + fonts map to CSS variables
@@ -62,5 +63,13 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Ancestor variants driven by <html data-text-scale> (set in FontSizeProvider).
+    // Non-:where selectors so they reliably override px breakpoint utilities
+    // (e.g. `md:grid-cols-12`) regardless of source order.
+    plugin(({ addVariant }) => {
+      addVariant("tscale-lg", ['html[data-text-scale="lg"] &', 'html[data-text-scale="xl"] &']);
+      addVariant("tscale-xl", 'html[data-text-scale="xl"] &');
+    }),
+  ],
 } satisfies Config;

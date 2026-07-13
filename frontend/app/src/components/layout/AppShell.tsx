@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useRef, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { SideNav } from "./SideNav";
 import { BottomTabBar } from "./BottomTabBar";
 
@@ -24,6 +24,39 @@ const BARE_ROUTES = new Set([
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  // Android hardware back button → router history (native/Capacitor only).
+  // Without this the WebView back button exits the app instead of navigating
+  // back. Registered once; refs keep the handler reading the current path and
+  // navigate. No-op on web. Must run before the BARE_ROUTES early return so the
+  // hook order stays stable.
+  const navRef = useRef(navigate);
+  navRef.current = navigate;
+  const pathRef = useRef(pathname);
+  pathRef.current = pathname;
+  useEffect(() => {
+    let cancelled = false;
+    let cleanup: (() => void) | undefined;
+    void (async () => {
+      const { Capacitor } = await import("@capacitor/core");
+      if (cancelled || !Capacitor.isNativePlatform()) return;
+      const { App } = await import("@capacitor/app");
+      const handle = await App.addListener("backButton", ({ canGoBack }) => {
+        const p = pathRef.current;
+        if (p === "/dashboard" || p === "/") void App.exitApp();
+        else if (canGoBack) navRef.current(-1);
+        else navRef.current("/dashboard");
+      });
+      if (cancelled) void handle.remove();
+      else cleanup = () => void handle.remove();
+    })();
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, []);
+
   if (BARE_ROUTES.has(pathname)) return <>{children}</>;
 
   return (

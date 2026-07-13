@@ -124,29 +124,29 @@ export function FontSizeSlider({ percent, onChange, className }: Props) {
         </span>
       </div>
 
-      {/* Row 2 — preset labels, same flex skeleton + inset as row 1 so labels
-          sit under matching ticks. */}
+      {/* Row 2 — preset labels. Laid out with justify-between inside the same
+          inset coordinate space as the track, so they sit under the 0/50/100%
+          ticks WITHOUT absolute positioning (which made them overlap as the
+          label text grew). Kept at a fixed 11px: these are scale descriptors,
+          not body copy, so they must NOT grow with the user's font lever or they
+          collide on a narrow phone at Extra Large. The live value is shown
+          full-size in the badge below for low-vision users. */}
       <div className="mt-1 flex gap-md" aria-hidden>
         <span className="invisible select-none font-display text-[16px] font-bold leading-none">Aa</span>
-        <div className="relative h-5 flex-1">
+        <div className="relative h-4 flex-1">
           <div
-            className="absolute inset-y-0"
+            className="absolute inset-y-0 flex items-start justify-between"
             style={{ left: HALF_THUMB, right: HALF_THUMB }}
           >
-            {FONT_PRESETS.map((preset, i) => {
-              const left = ((preset.value - FONT_PERCENT_MIN) / range) * 100;
-              const isFirst = i === 0;
-              const isAtEnd = i === FONT_PRESETS.length - 1 && left >= 90;
+            {FONT_PRESETS.map((preset) => {
               const active = percent === preset.value;
               return (
                 <span
                   key={preset.value}
                   className={cn(
-                    "absolute whitespace-nowrap font-label-caps text-label-caps uppercase tracking-wider transition-colors",
-                    isFirst ? "" : isAtEnd ? "-translate-x-full" : "-translate-x-1/2",
-                    active ? "font-bold text-primary" : "text-on-surface-variant",
+                    "whitespace-nowrap text-[11px] font-semibold uppercase leading-none tracking-wide transition-colors",
+                    active ? "text-primary" : "text-on-surface-variant",
                   )}
-                  style={{ left: `${left}%` }}
                 >
                   {preset.label}
                 </span>
@@ -158,13 +158,13 @@ export function FontSizeSlider({ percent, onChange, className }: Props) {
       </div>
 
       {/* Hint + current value badge */}
-      <div className="mt-md flex items-center justify-between gap-md">
-        <span id={labelId} className="font-body text-label font-normal text-on-surface-variant">
+      <div className="mt-md flex flex-wrap items-center justify-between gap-x-md gap-y-2">
+        <span id={labelId} className="min-w-0 font-body text-label font-normal text-on-surface-variant">
           Drag to set your text size
         </span>
         <span
           aria-live="polite"
-          className="flex-none rounded-full bg-primary/15 px-3 py-0.5 font-button text-button text-primary tabular-nums"
+          className="flex-none whitespace-nowrap rounded-full bg-primary/15 px-3 py-0.5 font-button text-button text-primary tabular-nums"
         >
           {percent}%{activePreset ? ` · ${activePreset.label}` : ""}
         </span>

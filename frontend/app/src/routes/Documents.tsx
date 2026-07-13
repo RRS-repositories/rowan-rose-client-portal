@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/useToast";
 import { RequirementsGrid } from "@/components/documents/RequirementsGrid";
-import { DocumentTypeSelector } from "@/components/documents/DocumentTypeSelector";
 import { DocumentUpload, type DocumentUploadHandle } from "@/components/documents/DocumentUpload";
 import { DocumentsList } from "@/components/documents/DocumentsList";
 import { LegalFooter } from "./Dashboard";
 import { useMockQuery } from "@/data/useMockQuery";
 import { getClient } from "@/data/mock";
+import { DOCUMENT_TYPES } from "@/config/upload";
 import type { DocumentType, Requirement, RequirementKind, UploadedDoc } from "@/data/types";
 
 /** Requirement kind → the document type to pre-select on the upload form. */
@@ -92,27 +92,49 @@ export default function Documents() {
     window.setTimeout(() => uploadHandle.current?.focusZone(), 320);
   }
 
-  function handleUploaded(doc: UploadedDoc, requirementUpdated: RequirementKind | null) {
-    // Pick the requirement this upload satisfies: the targeted one if it matches,
-    // else the sole outstanding requirement of that kind (ID / Proof of Address are
-    // unique; multiple lender bank statements need an explicit target).
+  function handleUploaded(doc: UploadedDoc, requirementUpdated: RequirementKind | null, lenderName?: string) {
+    // Pick the requirement this upload satisfies. Bank statements carry the chosen
+    // lender, so match on that; ID / Proof of Address are unique, so the sole
+    // outstanding requirement of that kind (or the explicitly targeted one) wins.
     let satisfied: Requirement | undefined;
     if (requirementUpdated) {
       const candidates = requirements.filter((r) => !r.done && r.kind === requirementUpdated);
-      satisfied = candidates.find((r) => r.id === targetReqId) ?? (candidates.length === 1 ? candidates[0] : undefined);
+      satisfied = lenderName
+        ? candidates.find((r) => r.lenderName === lenderName)
+        : candidates.find((r) => r.id === targetReqId) ?? (candidates.length === 1 ? candidates[0] : undefined);
     }
-    const finalDoc = satisfied?.lenderName ? { ...doc, lenderName: satisfied.lenderName } : doc;
+    const effectiveLender = lenderName ?? satisfied?.lenderName;
+    const finalDoc = effectiveLender ? { ...doc, lenderName: effectiveLender } : doc;
     setDocuments((cur) => [finalDoc, ...cur]);
 
     if (satisfied) {
       const { id, title } = satisfied;
       setRequirements((cur) => cur.map((r) => (r.id === id ? { ...r, done: true, receivedOn: new Date().toISOString() } : r)));
-      setTargetReqId(null);
       push({ title: "Document uploaded", description: `Your ${title} has been marked as complete.`, tone: "success" });
     } else {
       push({ title: "Document uploaded", description: "Your document was uploaded successfully.", tone: "success" });
     }
+    // Reset the form so the next upload re-asks the type — and a CRM-only type
+    // (Bank Statement) can't linger as a selectable option once its trigger clears.
+    setTargetReqId(null);
+    setSelectedType("");
   }
+
+  // Lenders on the client's account — offered when uploading a bank statement.
+  const lenderNames = data ? Array.from(new Set(data.claims.map((c) => c.lender.name))) : [];
+  // Bank statements are CRM-driven: the client can't pick "Bank Statement" on
+  // their own. It's only offered when the upload was launched from a CRM
+  // bank-statement requirement (card / ?highlight deep link), which sets the type
+  // and a target requirement. Otherwise we drop it from the type list entirely.
+  const bankStatementRequested = selectedType === "bank-statement" && !!targetReqId;
+  const typeOptions = bankStatementRequested
+    ? DOCUMENT_TYPES
+    : DOCUMENT_TYPES.filter((t) => t.value !== "bank-statement");
+  // When a bank-statement upload was launched for a specific lender (requirement
+  // card / deep link), pre-select that lender in the staging form.
+  const presetLender = bankStatementRequested
+    ? requirements.find((r) => r.id === targetReqId)?.lenderName ?? ""
+    : "";
 
   return (
     <Page label="Documents">
@@ -145,11 +167,15 @@ export default function Documents() {
 
             <section ref={uploadRef} aria-labelledby="upload-heading" className="scroll-mt-24 space-y-md">
               <h2 id="upload-heading" className="font-headline-md text-headline-md text-primary">Upload Documents</h2>
-              <DocumentTypeSelector value={selectedType} onChange={handleTypeChange} error={typeError} />
               <DocumentUpload
                 ref={uploadHandle}
                 documentType={selectedType}
+                onTypeChange={handleTypeChange}
+                typeError={typeError}
+                typeOptions={typeOptions}
                 onRequireType={() => setTypeError("Please choose a document type before uploading.")}
+                lenderNames={lenderNames}
+                presetLender={presetLender}
                 onUploaded={handleUploaded}
               />
             </section>

@@ -165,10 +165,15 @@ export function NotificationsMenu({ variant = "icon", placement, className }: Pr
           <span
             aria-hidden="true"
             className={cn(
-              "grid h-5 min-w-[20px] flex-none place-items-center rounded-full bg-error px-1 text-[11px] font-bold leading-none text-on-error",
+              "grid flex-none place-items-center rounded-full font-bold leading-none",
               variant === "icon"
-                ? "absolute right-1.5 top-1.5 ring-2 ring-surface-container-lowest"
-                : "ml-auto h-6 min-w-[24px] text-label-caps",
+                // Count badge on the bell — same badge-3d treatment as every other
+                // count in the app (ring separates it from the button beneath).
+                ? "badge-3d absolute right-1.5 top-1.5 h-5 min-w-[20px] px-1 text-[11px] text-on-error-container ring-2 ring-surface-container-lowest"
+                // Count pill — same treatment as the Chat nav / claim badges so the
+                // number stays high-contrast in both themes (badge-3d carries its
+                // own readable background).
+                : "badge-3d ml-auto h-6 min-w-[24px] px-1.5 text-label-caps text-on-error-container",
             )}
           >
             {unreadCount}

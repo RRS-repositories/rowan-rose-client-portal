@@ -24,11 +24,11 @@ export function WhatWeNeedCard({ requirements }: { requirements: Requirement[] }
         {requirements.map((r) => (
           <li key={r.id}>
             <Link to={`${r.action}?highlight=${r.id}`} className="flex items-center justify-between gap-sm rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-sm skeuo-recessed">
-              <span className="flex min-w-0 items-center gap-sm">
+              <span className="flex min-w-0 flex-1 items-center gap-sm">
                 <span className="grid h-10 w-10 flex-none place-items-center rounded-lg border border-error/10 bg-error-container/40 text-error skeuo-inner-highlight">
                   <Icon name={r.icon} size={22} />
                 </span>
-                <span className="truncate font-button text-button text-on-surface">{r.title}</span>
+                <span className="min-w-0 break-words font-button text-button text-on-surface">{r.title}</span>
               </span>
               <span className="flex min-h-[48px] flex-none items-center gap-xs rounded-lg bg-primary px-3 font-button text-label text-on-primary skeuo-raise skeuo-press">
                 Upload <Icon name="upload" size={18} />

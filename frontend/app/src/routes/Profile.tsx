@@ -9,7 +9,6 @@ import { NotificationPreferencesSection } from "@/components/profile/Notificatio
 import { AppearanceSection } from "@/components/profile/AppearanceSection";
 import { AccountActionsSection } from "@/components/profile/AccountActionsSection";
 import { ProgressAtGlance } from "@/components/profile/ProgressAtGlance";
-import { QuickLinks } from "@/components/profile/QuickLinks";
 import { AboutFirm } from "@/components/profile/AboutFirm";
 import { LegalFooter } from "./Dashboard";
 import { getClientProfile, getNotificationPreferences } from "@/api/profile";
@@ -81,7 +80,6 @@ export default function Profile() {
 
           <aside className="space-y-md lg:col-span-4">
             <ProgressAtGlance />
-            <QuickLinks />
             <AboutFirm />
           </aside>
         </div>

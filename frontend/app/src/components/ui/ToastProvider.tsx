@@ -28,7 +28,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ push }}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-2 p-4 md:inset-x-auto md:right-4 md:items-end">
+      <div
+        className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-2 p-4 md:inset-x-auto md:right-4 md:items-end"
+        // Clear the device status bar / notch (edge-to-edge on Android, notch on
+        // iOS). env() is 0 in a desktop browser, so this is a no-op on web.
+        style={{ paddingTop: "calc(env(safe-area-inset-top) + 1rem)" }}
+      >
         <AnimatePresence>
           {items.map((t) => {
             const m = toneMeta[t.tone];

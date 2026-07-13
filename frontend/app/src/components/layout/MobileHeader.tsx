@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { SettingsMenu } from "./SettingsMenu";
+import { ContactMenu } from "./ContactMenu";
 
 type Props =
   | { variant: "greeting"; greeting: string; subtitle: string }
@@ -18,7 +19,13 @@ export function MobileHeader(props: Props) {
   const navigate = useNavigate();
 
   return (
-    <header className="glass sticky top-0 z-40 flex items-center gap-sm px-margin-mobile py-base md:hidden">
+    <header
+      className="glass sticky top-0 z-40 flex items-center gap-sm px-margin-mobile py-base md:hidden"
+      // Pad past the device status bar / notch. Android 15+ (targetSDK 36) draws
+      // the WebView edge-to-edge; iOS standalone PWAs report the notch here too.
+      // env() is 0 in a normal desktop browser, so this is a no-op on web.
+      style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)" }}
+    >
       {props.variant === "back" && (
         <button
           onClick={props.onBack ?? (() => navigate(-1))}
@@ -39,6 +46,7 @@ export function MobileHeader(props: Props) {
         )}
       </div>
       <div className="flex flex-none items-center gap-1">
+        <ContactMenu />
         <SettingsMenu />
         <NotificationsMenu />
       </div>

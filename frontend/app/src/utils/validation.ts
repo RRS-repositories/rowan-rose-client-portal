@@ -44,6 +44,25 @@ export function validateDateOfBirth(value: string): string | null {
   return null;
 }
 
+/**
+ * UK phone validator — must resolve to exactly 10 significant digits (the
+ * national number, i.e. without the leading 0). Accepts 07…, +44…, 0044…, or a
+ * bare 10-digit number. Mirrors the backend rule in backend/src/lib/auth.js.
+ */
+export function validatePhone(value: string): string | null {
+  const v = value.trim();
+  if (!v) return "Please enter your phone number.";
+  const d = v.replace(/\D/g, "").replace(/^00/, "");
+  let nsn = "";
+  if (d.length === 12 && d.startsWith("44")) nsn = d.slice(2);
+  else if (d.length === 11 && d.startsWith("0")) nsn = d.slice(1);
+  else if (d.length === 10) nsn = d;
+  if (!/^\d{10}$/.test(nsn)) {
+    return "Please enter a valid UK number — 10 digits, like 07123 456789.";
+  }
+  return null;
+}
+
 export interface PasswordChecks {
   isValid: boolean;
   minLength: boolean;

@@ -9,11 +9,14 @@ interface Props {
   onChange: (value: DocumentType) => void;
   /** Set to surface a "please pick a type" error after a failed upload attempt. */
   error?: string | null;
+  /** The selectable types. Defaults to all; the parent narrows this (e.g. to hide
+   *  Bank Statement unless the CRM has asked for one). */
+  options?: ReadonlyArray<{ value: DocumentType; label: string }>;
 }
 
 /** Required native <select> for the document type — chosen before any upload.
  *  Native control = reliable at 200% zoom and with screen readers. */
-export function DocumentTypeSelector({ value, onChange, error }: Props) {
+export function DocumentTypeSelector({ value, onChange, error, options = DOCUMENT_TYPES }: Props) {
   const id = useId();
   const errId = `${id}-err`;
   return (
@@ -35,7 +38,7 @@ export function DocumentTypeSelector({ value, onChange, error }: Props) {
           )}
         >
           <option value="" disabled>Select a type…</option>
-          {DOCUMENT_TYPES.map((t) => (
+          {options.map((t) => (
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>

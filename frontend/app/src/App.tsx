@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Route, Routes, useLocation } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { AppShell } from "@/components/layout/AppShell";
 import { AuthProvider } from "@/context/AuthContext";
 import { RegistrationProvider } from "@/context/RegistrationContext";
@@ -33,8 +34,56 @@ const protectedRoute = (element: ReactNode) => <ProtectedRoute>{element}</Protec
 /** Auth pages; an already-authenticated user is bounced to /dashboard. */
 const publicRoute = (element: ReactNode) => <PublicOnlyRoute>{element}</PublicOnlyRoute>;
 
+// In the native (Capacitor) WebView, AnimatePresence's mode="wait" exit
+// coordination is unreliable — exit completion isn't signalled, so the next
+// page never mounts and navigation gets stuck / blank. On native we render the
+// routes directly (instant, dependable swaps); web/PWA keeps the animated
+// transition. Page.tsx makes the matching choice for the per-route wrapper.
+const NATIVE = Capacitor.isNativePlatform();
+
+const routeElements = (
+  <>
+    {/* Splash decides where to send the user based on session state. */}
+    <Route path="/" element={<Splash />} />
+
+    {/* In-app routes — require authentication. */}
+    <Route path="/dashboard" element={protectedRoute(<Dashboard />)} />
+    <Route path="/claims" element={protectedRoute(<Claims />)} />
+    <Route path="/claims/:id" element={protectedRoute(<ClaimDetail />)} />
+    <Route path="/claims/:id/accept-offer" element={protectedRoute(<OfferAcceptance />)} />
+    <Route path="/claims/:id/offer-accepted" element={protectedRoute(<OfferAccepted />)} />
+    <Route path="/documents" element={protectedRoute(<Documents />)} />
+    <Route path="/chat" element={protectedRoute(<Chat />)} />
+    <Route path="/chat/:claimId" element={protectedRoute(<Chat />)} />
+    <Route path="/profile" element={protectedRoute(<Profile />)} />
+    <Route path="/faq" element={protectedRoute(<Faq />)} />
+
+    {/* Auth flow — full-screen, rendered bare by AppShell; redirect away if logged in. */}
+    <Route path="/login" element={publicRoute(<Login />)} />
+    <Route path="/register" element={publicRoute(<Register />)} />
+    <Route path="/verify-otp" element={publicRoute(<VerifyOtp />)} />
+    <Route path="/create-password" element={publicRoute(<CreatePassword />)} />
+    <Route path="/complete-profile" element={publicRoute(<CompleteProfile />)} />
+    <Route path="/forgot-password" element={publicRoute(<ForgotPassword />)} />
+    <Route path="/check-email" element={publicRoute(<CheckEmail />)} />
+    <Route path="/reset-password" element={publicRoute(<ResetPassword />)} />
+    <Route path="/password-reset-success" element={publicRoute(<PasswordResetSuccess />)} />
+    <Route path="*" element={<NotFound />} />
+  </>
+);
+
 function AnimatedRoutes() {
   const location = useLocation();
+
+  // Native: direct routing, no presence animation (reliable, never stuck).
+  if (NATIVE) {
+    return (
+      <ErrorBoundary resetKey={location.pathname}>
+        <Routes>{routeElements}</Routes>
+      </ErrorBoundary>
+    );
+  }
+
   // Collapse parameterised sub-paths to their parent so navigating within the
   // same screen (e.g. /chat ↔ /chat/:claimId) doesn't trigger a full page
   // transition — the screen keeps its mount, and the in-page AnimatePresence
@@ -50,32 +99,7 @@ function AnimatedRoutes() {
           two slides at once. `initial={false}` skips the enter on first load. */}
       <AnimatePresence mode="wait" initial={false}>
         <Routes location={location} key={sectionKey}>
-          {/* Splash decides where to send the user based on session state. */}
-          <Route path="/" element={<Splash />} />
-
-          {/* In-app routes — require authentication. */}
-          <Route path="/dashboard" element={protectedRoute(<Dashboard />)} />
-          <Route path="/claims" element={protectedRoute(<Claims />)} />
-          <Route path="/claims/:id" element={protectedRoute(<ClaimDetail />)} />
-          <Route path="/claims/:id/accept-offer" element={protectedRoute(<OfferAcceptance />)} />
-          <Route path="/claims/:id/offer-accepted" element={protectedRoute(<OfferAccepted />)} />
-          <Route path="/documents" element={protectedRoute(<Documents />)} />
-          <Route path="/chat" element={protectedRoute(<Chat />)} />
-          <Route path="/chat/:claimId" element={protectedRoute(<Chat />)} />
-          <Route path="/profile" element={protectedRoute(<Profile />)} />
-          <Route path="/faq" element={protectedRoute(<Faq />)} />
-
-          {/* Auth flow — full-screen, rendered bare by AppShell; redirect away if logged in. */}
-          <Route path="/login" element={publicRoute(<Login />)} />
-          <Route path="/register" element={publicRoute(<Register />)} />
-          <Route path="/verify-otp" element={publicRoute(<VerifyOtp />)} />
-          <Route path="/create-password" element={publicRoute(<CreatePassword />)} />
-          <Route path="/complete-profile" element={publicRoute(<CompleteProfile />)} />
-          <Route path="/forgot-password" element={publicRoute(<ForgotPassword />)} />
-          <Route path="/check-email" element={publicRoute(<CheckEmail />)} />
-          <Route path="/reset-password" element={publicRoute(<ResetPassword />)} />
-          <Route path="/password-reset-success" element={publicRoute(<PasswordResetSuccess />)} />
-          <Route path="*" element={<NotFound />} />
+          {routeElements}
         </Routes>
       </AnimatePresence>
     </ErrorBoundary>

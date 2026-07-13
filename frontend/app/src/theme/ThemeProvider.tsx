@@ -71,6 +71,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Native (Capacitor) only: match the status-bar icon colour to the resolved
+  // theme so icons stay legible over the app background (edge-to-edge on Android).
+  // No-op on web. Style.Dark = light icons (dark bg); Style.Light = dark icons.
+  useEffect(() => {
+    void import("@capacitor/core").then(({ Capacitor }) => {
+      if (!Capacitor.isNativePlatform()) return;
+      void import("@capacitor/status-bar").then(({ StatusBar, Style }) => {
+        void StatusBar.setStyle({ style: resolved === "dark" ? Style.Dark : Style.Light });
+      });
+    });
+  }, [resolved]);
+
   useEffect(() => {
     if (theme !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");

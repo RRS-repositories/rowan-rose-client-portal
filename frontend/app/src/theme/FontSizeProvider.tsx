@@ -73,6 +73,11 @@ function applyPercent(percent: number) {
   // Expose the raw multiplier too — handy for any future component that
   // wants to size something proportional to the user's chosen text scale.
   root.style.setProperty("--rr-font-scale", `${percent / 100}`);
+  // Coarse text-scale bucket on <html> so layouts can shed columns as text
+  // grows. CSS px breakpoints (md/lg/xl) can't see this slider, so the desktop
+  // grids would otherwise stay multi-column and crush the enlarged text. The
+  // `tscale-lg` / `tscale-xl` Tailwind variants key off this attribute.
+  root.dataset.textScale = percent >= 150 ? "xl" : percent >= 130 ? "lg" : "base";
 }
 
 export function FontSizeProvider({ children }: { children: ReactNode }) {

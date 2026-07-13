@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Page } from "@/components/layout/Page";
 import { MobileHeader } from "@/components/layout/MobileHeader";
@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/useToast";
-import { ThreadSelector } from "@/components/chat/ThreadSelector";
+import { ClaimChips } from "@/components/chat/ClaimChips";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { MessageThread, type OptimisticMessage } from "@/components/chat/MessageThread";
 import { ReplyComposer } from "@/components/chat/ReplyComposer";
-import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { useAuth } from "@/context/AuthContext";
 import { useMockQuery } from "@/data/useMockQuery";
 import { getClient, subscribeUnread } from "@/data/mock";
@@ -23,14 +22,27 @@ import type { Message, MessageThread as MessageThreadModel } from "@/data/types"
 const BOTTOM_THRESHOLD = 80; // px from the bottom to count as "at the bottom"
 const MARK_READ_DELAY_MS = 2000;
 
+// Remembers the last claim the client was chatting about, so returning to the
+// Chat tab drops them back into that conversation instead of re-asking which
+// claim every time. Cleared implicitly when they pick a different claim.
+const LAST_CHAT_KEY = "rr-chat-last-claim";
+const readLastChat = (): string | null => {
+  try { return localStorage.getItem(LAST_CHAT_KEY); } catch { return null; }
+};
+const writeLastChat = (id: string): void => {
+  try { localStorage.setItem(LAST_CHAT_KEY, id); } catch { /* storage unavailable */ }
+};
+
 /* ─── Chat pane ──────────────────────────────────────────────────────────── */
 
 function ChatPane({
   claimId,
   clientName,
+  onSwitch,
 }: {
   claimId: string;
   clientName: string;
+  onSwitch: () => void;
 }) {
   const { push } = useToast();
   const claim = useMemo(() => getClient().claims.find((c) => c.id === claimId), [claimId]);
@@ -209,7 +221,8 @@ function ChatPane({
         <EmptyState
           icon="error"
           title="Conversation not found"
-          description="We couldn't find this claim. Please choose a different conversation from the list."
+          description="We couldn't find this claim. Please choose a different one to carry on."
+          action={<Button variant="primary" leadingIcon="forum" onClick={onSwitch}>Choose a claim</Button>}
         />
       </div>
     );
@@ -224,7 +237,7 @@ function ChatPane({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-surface-container-lowest skeuo-card md:bg-surface-container-low">
-      <ChatHeader claim={claim} />
+      <ChatHeader claim={claim} onSwitch={onSwitch} />
 
       {loadError ? (
         <div className="flex-1 overflow-y-auto p-md">
@@ -287,31 +300,37 @@ function ChatPane({
   );
 }
 
-/* ─── Default chat-pane state (desktop, no thread selected) ──────────────── */
-
-function NoSelection() {
-  return (
-    <div className="flex h-full items-center justify-center rounded-2xl bg-surface-container-lowest skeuo-card md:bg-surface-container-low">
-      <EmptyState
-        icon="forum"
-        title="Select a conversation"
-        description="Choose a claim from the left to view your messages."
-      />
-    </div>
-  );
-}
-
 /* ─── Route ──────────────────────────────────────────────────────────────── */
 
 export default function Chat() {
   const { claimId: claimIdParam } = useParams<{ claimId?: string }>();
   const claimId = claimIdParam ? decodeURIComponent(claimIdParam) : null;
   const navigate = useNavigate();
-  const isDesktop = useIsDesktop();
+  const location = useLocation();
   const reduce = useReducedMotion();
   const { state: auth } = useAuth();
 
   const { data: client } = useMockQuery(getClient, "client");
+
+  // The back arrow / "choose another claim" path sets this so the restore below
+  // doesn't immediately bounce the client back into the conversation they just left.
+  const wantsList = (location.state as { showList?: boolean } | null)?.showList === true;
+
+  // Persist the open conversation so the Chat tab can resume it later.
+  useEffect(() => {
+    if (claimId) writeLastChat(claimId);
+  }, [claimId]);
+
+  // Landing on the bare Chat tab: if there's a remembered conversation (and it
+  // still exists), resume it. Otherwise fall through to the claim picker. Skip
+  // when the client explicitly asked for the list (back / switch claim).
+  useEffect(() => {
+    if (claimId || wantsList || !client) return;
+    const last = readLastChat();
+    if (last && client.claims.some((c) => c.id === last)) {
+      navigate(`/chat/${encodeURIComponent(last)}`, { replace: true });
+    }
+  }, [claimId, wantsList, client, navigate]);
 
   // Threads load via the async mock (which has its own 700ms delay), so we
   // can't use useMockQuery here — that hook only takes synchronous getters.
@@ -343,35 +362,27 @@ export default function Chat() {
   useEffect(() => subscribeUnread(refetchThreads), [refetchThreads]);
 
   const clientName = client ? `${client.firstName} ${client.lastName}` : "You";
+  const clientFirstName = client?.firstName ?? "";
 
   function selectThread(id: string) {
     navigate(`/chat/${encodeURIComponent(id)}`);
   }
 
   function backToList() {
-    navigate("/chat");
+    navigate("/chat", { state: { showList: true } });
   }
-
-  const activeClaim = claimId && client ? client.claims.find((c) => c.id === claimId) : undefined;
 
   return (
     <Page label="Messages">
-      {/* Mobile header: title view when on the list, back view when on a chat. */}
-      {!isDesktop && !claimId && <MobileHeader variant="title" title="Messages" />}
-      {!isDesktop && claimId && (
-        <MobileHeader
-          variant="back"
-          title={activeClaim?.lender.name ?? "Messages"}
-          onBack={backToList}
-          backLabel="Back to message threads"
-        />
-      )}
+      {/* One unified chat screen on every viewport — the title stays generic; the
+          active claim and the "switch claim" control live inside the chat card. */}
+      <MobileHeader variant="title" title="Messages" />
 
       {/* Desktop heading */}
       <div className="hidden px-lg pt-md md:block">
         <h1 className="font-display-lg-mobile text-display-lg text-on-surface">Messages</h1>
         <p className="mt-1 font-body-lg text-body-lg text-on-surface-variant">
-          One thread per claim — your handler will reply here.
+          Chat with your claims team. Pick a claim to see its messages.
         </p>
       </div>
 
@@ -383,68 +394,34 @@ export default function Chat() {
           "h-[calc(100dvh-64px-120px)] md:h-[calc(100dvh-160px)]"
         }
       >
-        <div className="grid h-full min-h-0 grid-cols-1 gap-md md:grid-cols-[260px_1fr] lg:grid-cols-[320px_1fr]">
-          {/* Thread selector — desktop always; mobile only when no claim selected. */}
-          <div className={(!claimId ? "block " : "hidden ") + "min-h-0 md:block"}>
-            {!isDesktop ? (
-              <AnimatePresence mode="wait" initial={false}>
-                {!claimId && (
-                  <motion.div
-                    key="list"
-                    variants={reduce ? pageFade : pageSlide}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    className="h-full min-h-0"
-                  >
-                    <ThreadSelector
-                      threads={threads}
-                      claims={client?.claims ?? []}
-                      activeClaimId={claimId}
-                      onSelect={selectThread}
-                      loading={threadsLoading || !client}
-                      error={threadsError}
-                      onRetry={refetchThreads}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            ) : (
-              <ThreadSelector
-                threads={threads}
-                claims={client?.claims ?? []}
-                activeClaimId={claimId}
-                onSelect={selectThread}
-                loading={threadsLoading || !client}
-                error={threadsError}
-                onRetry={refetchThreads}
-              />
-            )}
-          </div>
-
-          {/* Chat pane — desktop always; mobile only when a claim is selected. */}
-          <div className={(claimId ? "block " : "hidden ") + "min-h-0 md:block"}>
-            {!isDesktop ? (
-              <AnimatePresence mode="wait" initial={false}>
-                {claimId && (
-                  <motion.div
-                    key={`chat-${claimId}`}
-                    variants={reduce ? pageFade : pageSlide}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    className="h-full min-h-0"
-                  >
-                    <ChatPane claimId={claimId} clientName={clientName} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            ) : claimId ? (
-              <ChatPane claimId={claimId} clientName={clientName} />
-            ) : (
-              <NoSelection />
-            )}
-          </div>
+        {/* Single column, centred on wide screens like a bank chat portal. */}
+        <div className="mx-auto h-full min-h-0 w-full max-w-3xl">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={claimId ?? "picker"}
+              variants={reduce ? pageFade : pageSlide}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="h-full min-h-0"
+            >
+              {claimId ? (
+                <ChatPane claimId={claimId} clientName={clientName} onSwitch={backToList} />
+              ) : (
+                <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-surface-container-lowest skeuo-card md:bg-surface-container-low">
+                  <ClaimChips
+                    threads={threads}
+                    claims={client?.claims ?? []}
+                    clientFirstName={clientFirstName}
+                    onSelect={selectThread}
+                    loading={threadsLoading || !client}
+                    error={threadsError}
+                    onRetry={refetchThreads}
+                  />
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </Page>

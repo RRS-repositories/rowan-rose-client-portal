@@ -2,15 +2,14 @@ import { Link } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 
 const ACTIONS = [
-  { to: "/documents", icon: "upload", label: "Upload Document", aria: "Upload a document" },
   { to: "/chat", icon: "forum", label: "View Messages", aria: "View your messages" },
 ] as const;
 
-/** Two prominent shortcuts beneath the claims grid — large tap targets for older
- *  clients. Stacks full-width on mobile, side-by-side from sm up. */
+/** Prominent shortcut beneath the claims grid — large tap target for older
+ *  clients. Full-width on every viewport. */
 export function QuickActions() {
   return (
-    <nav aria-label="Quick actions" className="grid grid-cols-1 gap-gutter sm:grid-cols-2">
+    <nav aria-label="Quick actions" className="grid grid-cols-1 gap-gutter">
       {ACTIONS.map((a) => (
         <Link
           key={a.to}
