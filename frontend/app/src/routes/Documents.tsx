@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/useToast";
 import { RequirementsGrid } from "@/components/documents/RequirementsGrid";
-import { DocumentTypeSelector } from "@/components/documents/DocumentTypeSelector";
 import { DocumentUpload, type DocumentUploadHandle } from "@/components/documents/DocumentUpload";
 import { LegalFooter } from "./Dashboard";
 import { useMockQuery } from "@/data/useMockQuery";
 import { getClient } from "@/data/mock";
+import { DOCUMENT_TYPES } from "@/config/upload";
 import type { DocumentType, Requirement, RequirementKind, UploadedDoc } from "@/data/types";
 // Note: the "Your Documents" list was intentionally removed — clients only send
 // documents, they don't review them here. Uploads still post to the backend.
@@ -103,6 +103,19 @@ export default function Documents() {
     }
   }
 
+  // Lenders on the client's account — offered when uploading a bank statement.
+  const lenderNames = data ? Array.from(new Set(data.claims.map((c) => c.lender.name))) : [];
+  // Bank Statement is CRM-driven: it's only offered when an upload was launched
+  // from a bank-statement requirement (card / ?highlight deep link), which sets a
+  // target. Otherwise it's dropped from the selectable types.
+  const bankStatementRequested = selectedType === "bank-statement" && !!targetReqId;
+  const typeOptions = bankStatementRequested
+    ? DOCUMENT_TYPES
+    : DOCUMENT_TYPES.filter((t) => t.value !== "bank-statement");
+  const presetLender = bankStatementRequested
+    ? requirements.find((r) => r.id === targetReqId)?.lenderName ?? ""
+    : "";
+
   return (
     <Page label="Documents">
       <MobileHeader variant="title" title="Documents" />
@@ -134,11 +147,15 @@ export default function Documents() {
 
             <section ref={uploadRef} aria-labelledby="upload-heading" className="scroll-mt-24 space-y-md">
               <h2 id="upload-heading" className="font-headline-md text-headline-md text-primary">Upload Documents</h2>
-              <DocumentTypeSelector value={selectedType} onChange={handleTypeChange} error={typeError} />
               <DocumentUpload
                 ref={uploadHandle}
                 documentType={selectedType}
+                onTypeChange={handleTypeChange}
+                typeError={typeError}
+                typeOptions={typeOptions}
                 onRequireType={() => setTypeError("Please choose a document type before uploading.")}
+                lenderNames={lenderNames}
+                presetLender={presetLender}
                 onUploaded={handleUploaded}
               />
             </section>
