@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { query } from "../db.js";
+import { crmEnabled } from "../crmdb.js";
+import { getContactsByEmail } from "../crm/repo.js";
 import {
   hashPassword, verifyPassword, signToken, verifyToken,
-  generateOtp, toAuthUser, dobError, phoneError, normalizePhoneUK, ageFrom,
+  generateOtp, toAuthUser, dobError, defaultPasswordFromDob,
 } from "../lib/auth.js";
 
 export const authRouter = Router();
@@ -103,8 +105,7 @@ authRouter.post("/complete-registration", async (req, res) => {
   const pwErr = passwordError(password);
   if (pwErr) return res.json({ success: false, token: "", user: null, message: pwErr });
   if (!fullName || String(fullName).trim().length < 2) return res.json({ success: false, token: "", user: null, message: "Please enter your full name." });
-  const phErr = phoneError(phone);
-  if (phErr) return res.json({ success: false, token: "", user: null, message: phErr });
+  if (!phone || String(phone).replace(/\D/g, "").length < 7) return res.json({ success: false, token: "", user: null, message: "Please enter a valid phone number." });
   const dErr = dobError(dob);
   if (dErr) return res.json({ success: false, token: "", user: null, message: dErr });
 
@@ -116,29 +117,67 @@ authRouter.post("/complete-registration", async (req, res) => {
   const { rows } = await query(
     `INSERT INTO users (email, password_hash, full_name, phone, dob)
      VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [email, hash, String(fullName).trim(), normalizePhoneUK(phone), dob],
+    [email, hash, String(fullName).trim(), String(phone).trim(), dob],
   );
   const user = toAuthUser(rows[0]);
   const token = signToken({ scope: "session", sub: rows[0].id }, "2h");
   res.json({ success: true, token, user, message: "Account created successfully." });
 });
 
-authRouter.post("/login", async (req, res) => {
-  const email = normEmail(req.body?.email);
-  const password = String(req.body?.password || "");
-  const user = await findUserByEmail(email);
-  if (!user || !(await verifyPassword(password, user.password_hash))) {
-    return res.json({ success: false, token: "", user: null, message: "Invalid email or password." });
+/**
+ * Auto-provision a portal account on first login from the CRM contact, using
+ * the DOB-as-default-password scheme (email = ID, password = DDMMYYYY DOB).
+ * Returns the new user row, or null if no CRM contact matches email + DOB.
+ * The stored hash is of the supplied password, so the DOB keeps working until
+ * the client changes it via the normal reset flow.
+ */
+async function provisionFromCrm(email, password) {
+  if (!crmEnabled()) return null;
+  const contacts = await getContactsByEmail(email);
+  // The supplied password IS the DOB — it also disambiguates duplicate emails.
+  const match = contacts.find((c) => defaultPasswordFromDob(c.dob) === password);
+  if (!match) return null;
+
+  const fullName =
+    match.full_name || `${match.first_name ?? ""} ${match.last_name ?? ""}`.trim() || "Client";
+  const hash = await hashPassword(password);
+  try {
+    const { rows } = await query(
+      `INSERT INTO users (email, password_hash, full_name, phone, dob, client_id, email_verified)
+       VALUES ($1, $2, $3, $4, $5, $6, true)
+       RETURNING *`,
+      [email, hash, fullName, match.phone || "", match.dob, match.client_id || null],
+    );
+    return rows[0];
+  } catch {
+    // Race: another request created it first — fall back to the existing row.
+    return findUserByEmail(email);
   }
-  // Age gate: a client must be 18+ to access the portal, re-checked at every
-  // login (not just registration). Only blocks a confirmed under-18 DOB; a
-  // missing/unparseable DOB does not lock an existing client out.
-  const age = ageFrom(user.dob);
-  if (age !== null && age < 18) {
-    return res.json({ success: false, token: "", user: null, message: "You must be 18 or older to use the portal." });
+}
+
+authRouter.post("/login", async (req, res, next) => {
+  try {
+    const email = normEmail(req.body?.email);
+    const password = String(req.body?.password || "");
+    let user = await findUserByEmail(email);
+
+    if (user) {
+      if (!(await verifyPassword(password, user.password_hash))) {
+        return res.json({ success: false, token: "", user: null, message: "Invalid email or password." });
+      }
+    } else {
+      // No portal account yet — try the CRM default-password (DOB) path.
+      user = await provisionFromCrm(email, password);
+      if (!user) {
+        return res.json({ success: false, token: "", user: null, message: "Invalid email or password." });
+      }
+    }
+
+    const token = signToken({ scope: "session", sub: user.id }, "2h");
+    res.json({ success: true, token, user: toAuthUser(user), message: "Login successful." });
+  } catch (err) {
+    next(err);
   }
-  const token = signToken({ scope: "session", sub: user.id }, "2h");
-  res.json({ success: true, token, user: toAuthUser(user), message: "Login successful." });
 });
 
 // Password reset (basic). Never reveal whether an email is registered.

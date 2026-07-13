@@ -144,7 +144,11 @@ export function DocumentsList({ documents }: { documents: UploadedDoc[] }) {
                       </span>
                     </td>
                     <td className="max-w-[280px] p-sm">
-                      <span className="block truncate font-body-lg text-body-md text-on-surface" title={d.name}>{d.name}</span>
+                      {d.url ? (
+                        <a href={d.url} target="_blank" rel="noopener noreferrer" className="block truncate font-body-lg text-body-md text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" title={`View ${d.name}`}>{d.name}</a>
+                      ) : (
+                        <span className="block truncate font-body-lg text-body-md text-on-surface" title={d.name}>{d.name}</span>
+                      )}
                     </td>
                     <td className="p-sm font-body text-body-md text-on-surface-variant">{typeLabel(d)}</td>
                     <td className="whitespace-nowrap p-sm font-body text-body-md text-on-surface-variant">{formatDate(d.uploadedOn)}</td>
@@ -165,7 +169,11 @@ export function DocumentsList({ documents }: { documents: UploadedDoc[] }) {
                     <span className="grid h-11 w-11 flex-none place-items-center rounded-lg border border-outline-variant/30 bg-surface-container-high text-secondary">
                       <Icon name={getFileIcon(d.mime)} size={22} />
                     </span>
-                    <span className="min-w-0 flex-1 truncate font-body-lg text-body-lg text-on-surface" title={d.name}>{d.name}</span>
+                    {d.url ? (
+                      <a href={d.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate font-body-lg text-body-lg text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" title={`View ${d.name}`}>{d.name}</a>
+                    ) : (
+                      <span className="min-w-0 flex-1 truncate font-body-lg text-body-lg text-on-surface" title={d.name}>{d.name}</span>
+                    )}
                   </div>
                   <div className="mt-sm flex flex-wrap items-center gap-x-sm gap-y-xs">
                     <span className="rounded-full bg-surface-container-high px-2 py-0.5 font-label text-label text-on-surface-variant">{typeLabel(d)}</span>

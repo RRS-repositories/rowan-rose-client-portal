@@ -158,14 +158,20 @@ export const CLIENT: Client = {
   ],
 };
 
-export const getClient = (): Client => CLIENT;
-export const getClaim = (id: string): Claim | undefined => CLIENT.claims.find((c) => c.id === id);
+/** Real client data, loaded from the backend after login (Phase 7.1). When set,
+ *  the getters below return it instead of the mock CLIENT. Null = mock/demo. */
+let REAL: Client | null = null;
+export const setRealClient = (c: Client | null): void => { REAL = c; };
+const active = (): Client => REAL ?? CLIENT;
+
+export const getClient = (): Client => active();
+export const getClaim = (id: string): Claim | undefined => active().claims.find((c) => c.id === id);
 
 /** Client-level outstanding requirements — surfaced on the dashboard and on each active claim. */
-export const getRequirements = (): Requirement[] => CLIENT.requirements;
+export const getRequirements = (): Requirement[] => active().requirements;
 
 /** Total unread client-facing messages across all claims — drives the notification bell. */
-export const getUnreadCount = (): number => CLIENT.claims.reduce((s, c) => s + (c.unreadMessages ?? 0), 0);
+export const getUnreadCount = (): number => active().claims.reduce((s, c) => s + (c.unreadMessages ?? 0), 0);
 
 /** Simple pub/sub so React contexts can re-read `getUnreadCount()` when the mock
  *  messages module mutates `Claim.unreadMessages` (mark-as-read, future sends).

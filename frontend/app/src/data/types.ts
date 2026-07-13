@@ -72,6 +72,8 @@ export interface UploadedDoc {
   rejectionReason?: string;  // present when status === "rejected"
   lenderName?: string;       // for lender-specific docs (bank statements)
   kind: DocKind;             // coarse class for icon choice
+  url?: string;              // presigned view/download URL (real backend)
+  folder?: string;           // S3 sub-folder path, for grouping (real backend)
 }
 
 /** Mocked POST /client/documents/upload result. */
@@ -85,6 +87,10 @@ export interface UploadResponse {
 
 export interface Client {
   id: string;
+  /** CRM client reference (e.g. RR-676687-554); empty until assigned. */
+  clientId?: string;
+  /** CRM contacts.id the portal account links to (support/debugging). */
+  contactId?: number | null;
   firstName: string;
   lastName: string;
   claims: Claim[];

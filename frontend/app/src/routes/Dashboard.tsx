@@ -163,6 +163,11 @@ export default function Dashboard() {
           />
         ) : (
           <>
+            {(data.contactId != null || data.clientId) && (
+              <p className="mb-sm font-body-sm text-body-sm text-on-surface-variant/70">
+                Client ID {data.clientId || data.contactId || "—"}
+              </p>
+            )}
             {/* ===== MOBILE ===== */}
             <div className="space-y-md md:hidden">
               <WhatWeNeedCard requirements={outstanding} />

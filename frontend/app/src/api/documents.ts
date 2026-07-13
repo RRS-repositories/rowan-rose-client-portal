@@ -8,15 +8,20 @@ import * as mock from "./mocks/documents";
 import type { DocumentType, UploadResponse, UploadedDoc } from "@/data/types";
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== "false";
+// Reading documents is real in real-auth mode; upload/delete stay mocked until
+// the S3-backed write endpoints exist.
+const DOCS_REAL = import.meta.env.VITE_REAL_AUTH === "true";
 
 export function getClientDocuments(): Promise<UploadedDoc[]> {
-  return USE_MOCKS ? mock.getClientDocuments() : apiClient.get<UploadedDoc[]>("/client/documents");
+  return DOCS_REAL ? apiClient.get<UploadedDoc[]>("/client/documents") : mock.getClientDocuments();
 }
 
 export function uploadDocument(file: File, documentType: DocumentType): Promise<UploadResponse> {
-  return USE_MOCKS
-    ? mock.uploadDocument(file, documentType)
-    : apiClient.post<UploadResponse>("/client/documents/upload", { fileName: file.name, documentType });
+  if (!DOCS_REAL) return mock.uploadDocument(file, documentType);
+  const form = new FormData();
+  form.append("file", file);
+  form.append("documentType", documentType);
+  return apiClient.upload<UploadResponse>("/client/documents/upload", form);
 }
 
 export function deleteDocument(documentId: string): Promise<{ success: boolean; message: string }> {

@@ -26,9 +26,14 @@ export interface SimpleSuccessResponse {
 }
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== "false";
+// Profile details come from the real backend in real-auth mode; the rest
+// (preferences, password, etc.) stay mocked until their endpoints exist.
+const PROFILE_REAL = import.meta.env.VITE_REAL_AUTH === "true";
 
 export function getClientProfile(): Promise<ClientProfile> {
-  return USE_MOCKS ? mock.getClientProfile() : apiClient.get<ClientProfile>("/client/profile");
+  return PROFILE_REAL
+    ? apiClient.get<{ profile: ClientProfile }>("/client/profile").then((r) => r.profile)
+    : mock.getClientProfile();
 }
 
 export function getNotificationPreferences(): Promise<NotificationPreferences> {
@@ -40,7 +45,7 @@ export function updateNotificationPreferences(prefs: NotificationPreferences): P
 }
 
 export function changePassword(data: ChangePasswordRequest): Promise<ChangePasswordResponse> {
-  return USE_MOCKS ? mock.changePassword(data) : apiClient.post<ChangePasswordResponse>("/client/change-password", data);
+  return PROFILE_REAL ? apiClient.post<ChangePasswordResponse>("/client/change-password", data) : mock.changePassword(data);
 }
 
 export function logoutAllDevices(): Promise<SimpleSuccessResponse> {
