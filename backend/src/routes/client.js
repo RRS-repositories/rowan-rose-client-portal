@@ -29,6 +29,14 @@ clientRouter.use(requireAuth);
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 const IMG_EXT = ["jpg", "jpeg", "png", "gif", "webp", "heic"];
 
+/** Upload document type → the client requirement kind it satisfies (mirrors
+ *  RequirementKind in frontend types). Uploads of "other" satisfy nothing. */
+const REQUIREMENT_KIND_BY_DOCTYPE = {
+  id: "id",
+  address: "address",
+  "bank-statement": "bank-statements",
+};
+
 /** Liveness for the CRM link — handy while wiring the frontend. */
 clientRouter.get("/status", (req, res) => {
   res.json({
@@ -121,20 +129,27 @@ clientRouter.post("/documents/upload", upload.single("file"), async (req, res, n
     if (!file) return res.status(400).json({ success: false, message: "No file was provided." });
 
     const documentType = String(req.body?.documentType || "other");
+    // Per-claim asks (bank statements) carry the lender + CRM claim id so the
+    // documents row is attributed to the right claim and the requirement flips
+    // to "received". Absent for contact-level asks (ID).
+    const lender = req.body?.lender ? String(req.body.lender) : null;
+    const claimId = /^\d+$/.test(String(req.body?.claimId || "")) ? Number(req.body.claimId) : null;
     const safe = file.originalname.replace(/[\\/]+/g, "_").replace(/[^\w.\- ]/g, "_").slice(0, 180) || "upload";
     const key = `${req.contact.first_name}_${req.contact.last_name}_${req.contact.id}/Documents/${safe}`;
     await putObject(key, file.buffer, file.mimetype);
 
     // Best-effort: record it in the CRM so staff see the upload (needs portal_rw).
     if (crmWriteEnabled()) {
-      try { await insertClientDocument(req.contact, file.originalname, file.size, key, documentType); }
+      try { await insertClientDocument(req.contact, file.originalname, file.size, key, documentType, { lender, claimId }); }
       catch (e) { console.warn("[upload] documents insert failed:", e.message); }
     }
 
     const ext = (file.originalname.split(".").pop() || "").toLowerCase();
     res.json({
       success: true,
-      requirementUpdated: null,
+      // Which client requirement kind this upload satisfies, so the page can
+      // flip that card to "received". null for ad-hoc uploads (Other).
+      requirementUpdated: REQUIREMENT_KIND_BY_DOCTYPE[documentType] || null,
       message: "Document uploaded. Thank you.",
       document: {
         id: Buffer.from(key).toString("base64url"),

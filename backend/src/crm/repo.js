@@ -232,58 +232,129 @@ export async function getDocumentsByContactId(contact) {
   }));
 }
 
-/** Record a portal upload in the CRM documents table so staff see it. */
-export async function insertClientDocument(contact, originalName, sizeBytes, s3Key, documentType) {
+/** Record a portal upload in the CRM documents table so staff see it. When the
+ *  upload satisfies a per-claim ask (bank statements) it's tagged with the claim
+ *  + lender so staff — and the requirements read below — can match it. Always
+ *  tagged 'Portal' so client uploads are distinguishable from firm/lender docs. */
+export async function insertClientDocument(contact, originalName, sizeBytes, s3Key, documentType, { lender = null, claimId = null } = {}) {
   const ext = (originalName.split(".").pop() || "").toLowerCase();
   const sizeKB = `${(Number(sizeBytes) / 1024).toFixed(1)} KB`;
   const category = CATEGORY_BY_DOCTYPE[documentType] || "Client";
   await crmWriteQuery(
-    `INSERT INTO documents (contact_id, name, type, category, url, size, s3_key, document_status, file_size_bytes, tags, uploaded_by_name, created_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,'uploaded',$8,$9,$10, now())`,
-    [contact.id, originalName, ext, category, "", sizeKB, s3Key, Number(sizeBytes) || 0, ["Uploaded", "Portal"], `${contact.first_name} ${contact.last_name}`.trim()],
+    `INSERT INTO documents (contact_id, claim_id, name, type, category, lender, url, size, s3_key, document_status, file_size_bytes, tags, uploaded_by_name, created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'uploaded',$10,$11,$12, now())`,
+    [contact.id, claimId, originalName, ext, category, lender, "", sizeKB, s3Key, Number(sizeBytes) || 0, ["Uploaded", "Portal"], `${contact.first_name} ${contact.last_name}`.trim()],
   );
 }
 
-const REQ_KIND = {
-  id: "id",
-  identification: "id",
-  poa: "address",
-  "proof of address": "address",
-  address: "address",
-  "bank statement": "bank-statements",
-  "bank statements": "bank-statements",
-  questionnaire: "questionnaire",
-  "extra lender": "extra-lender",
-};
+// What the firm is actively asking THIS client to provide.
+//
+// Deliberately NOT sourced from `required_documents`: that table tracks the
+// firm's own case-file letters (Letter of Authority / Cover Letter / Complaint
+// Letter, auto-seeded per claim) — documents the firm generates, never client
+// obligations. Showing them made every client "upload" three firm letters.
+//
+// Instead we derive asks from the CRM's real client-request signals and mark
+// each "received" the moment the client's own portal upload lands (the tagged
+// `documents` row this portal inserts — which staff also see). The ask only
+// re-appears when the firm re-requests: for ID when the id-chase is re-armed
+// (id_chase_started_at moves past the last upload); for bank statements when the
+// case is (re)set to "Bank Statements Requested" after the last upload.
+//
+// Scope (this pass): ID/identity + bank statements. Signature/LoA and the other
+// client asks (questionnaire, extra-lender, offer acceptance, FOS) come later.
 
-/** Outstanding (is_satisfied = false) requirements for a contact. Requirements
- *  tied to a claim that is hidden (e.g. Not Qualified) are dropped, so the
- *  client never sees document asks for a claim they can't see. Client-level
- *  requirements (no claim_id) are always kept. */
-export async function getRequirementsByContactId(contactId) {
+const BANK_REQUEST_STATUS = "bank statements requested";
+const ms = (v) => (v ? new Date(v).getTime() : 0);
+
+/** Portal-uploaded documents for a contact, newest-per (claim, category). Only
+ *  rows this portal wrote (tag 'Portal') count toward "received" — never firm or
+ *  lender documents. */
+async function getPortalUploads(contactId) {
   const { rows } = await crmQuery(
-    `SELECT rd.id, rd.claim_id, rd.lender, rd.category, rd.is_satisfied, rd.created_at,
-            k.status AS case_status
-       FROM public.required_documents rd
-       LEFT JOIN public.cases k ON k.id = rd.claim_id
-      WHERE rd.contact_id = $1 AND COALESCE(rd.is_satisfied, false) = false
-      ORDER BY rd.created_at ASC`,
+    `SELECT claim_id, category, max(created_at) AS uploaded_at
+       FROM public.documents
+      WHERE contact_id = $1 AND tags && ARRAY['Portal']::text[]
+      GROUP BY claim_id, category`,
     [contactId],
   );
-  return rows
-    .filter((r) => r.claim_id == null || mapStatus(r.case_status) !== null)
-    .map((r) => {
-    const kind = REQ_KIND[String(r.category || "").toLowerCase()] || "questionnaire";
-    return {
-      id: String(r.id),
-      kind,
-      title: r.category || "Document required",
-      description: "Please provide this so we can progress your claim.",
-      icon: "upload_file",
-      done: false,
-      lenderName: r.lender || undefined,
-      claimId: r.claim_id != null ? String(r.claim_id) : undefined,
+  return rows;
+}
+
+/**
+ * The client's outstanding (and just-received) document asks. Each item is
+ * either `done:false` ("please upload …") or `done:true` ("received — thank
+ * you"); the client only ever sees these two states — never the file itself,
+ * and never a firm-generated document.
+ */
+export async function getRequirementsByContactId(contactId) {
+  const [contactRes, casesRes, uploads] = await Promise.all([
+    crmQuery(
+      `SELECT id_chase_active, id_chase_started_at, identity_status, identity_confirmed_at
+         FROM public.contacts WHERE id = $1 LIMIT 1`,
+      [contactId],
+    ),
+    crmQuery(
+      `SELECT id, lender, lender_other, status, updated_at
+         FROM public.cases WHERE contact_id = $1`,
+      [contactId],
+    ),
+    getPortalUploads(contactId),
+  ]);
+  const contact = contactRes.rows[0];
+  const reqs = [];
+
+  // ── ID / identity verification (contact-level, one per client) ──
+  if (contact && contact.id_chase_active && !contact.identity_confirmed_at) {
+    const requestedAt = ms(contact.id_chase_started_at);
+    const up = uploads.find((u) => u.claim_id == null && /^id/i.test(String(u.category)));
+    // "needs_review" means an ID is already in with the firm being checked.
+    const received =
+      String(contact.identity_status || "").toLowerCase() === "needs_review" ||
+      Boolean(up && ms(up.uploaded_at) >= requestedAt);
+    reqs.push({
+      id: `id-${contactId}`,
+      kind: "id",
+      title: "Verify your identity",
+      description: received
+        ? "Received — thank you. We'll be in touch if we need anything else."
+        : "Please upload photo ID (passport or driving licence), or a recent utility or council-tax bill.",
+      icon: "badge",
+      done: received,
+      receivedOn: received && up ? iso(up.uploaded_at) : undefined,
       action: "Upload",
-    };
-  });
+    });
+  }
+
+  // ── Bank statements (per claim / lender) ──
+  for (const k of casesRes.rows) {
+    if (String(k.status || "").trim().toLowerCase() !== BANK_REQUEST_STATUS) continue;
+    if (mapStatus(k.status) === null) continue; // never surface a hidden claim
+    const claimId = String(k.id);
+    const lender = k.lender || k.lender_other || "your lender";
+    // No status-change timestamp exists on cases, so `updated_at` is the request
+    // reference. Good enough while the ask is live; a precise per-request signal
+    // (bank-statement request token) is a later refinement.
+    const requestedAt = ms(k.updated_at);
+    const up = uploads.find(
+      (u) => String(u.claim_id) === claimId && /bank statement/i.test(String(u.category)),
+    );
+    const received = Boolean(up && ms(up.uploaded_at) >= requestedAt);
+    reqs.push({
+      id: `bank-${claimId}`,
+      kind: "bank-statements",
+      title: `Bank statements — ${lender}`,
+      description: received
+        ? "Received — thank you. We'll be in touch if we need anything else."
+        : `Please upload your bank statements for your ${lender} claim so we can progress it.`,
+      icon: "account_balance",
+      done: received,
+      receivedOn: received ? iso(up.uploaded_at) : undefined,
+      lenderName: lender,
+      claimId,
+      action: "Upload",
+    });
+  }
+
+  return reqs;
 }

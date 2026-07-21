@@ -16,11 +16,19 @@ export function getClientDocuments(): Promise<UploadedDoc[]> {
   return DOCS_REAL ? apiClient.get<UploadedDoc[]>("/client/documents") : mock.getClientDocuments();
 }
 
-export function uploadDocument(file: File, documentType: DocumentType): Promise<UploadResponse> {
+export function uploadDocument(
+  file: File,
+  documentType: DocumentType,
+  opts?: { lender?: string; claimId?: string },
+): Promise<UploadResponse> {
   if (!DOCS_REAL) return mock.uploadDocument(file, documentType);
   const form = new FormData();
   form.append("file", file);
   form.append("documentType", documentType);
+  // Bank statements are per-claim: send the lender + CRM claim id so the backend
+  // attributes the upload to the right claim and clears that requirement.
+  if (opts?.lender) form.append("lender", opts.lender);
+  if (opts?.claimId) form.append("claimId", opts.claimId);
   return apiClient.upload<UploadResponse>("/client/documents/upload", form);
 }
 

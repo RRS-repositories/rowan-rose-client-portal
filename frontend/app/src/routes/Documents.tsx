@@ -115,6 +115,9 @@ export default function Documents() {
   const presetLender = bankStatementRequested
     ? requirements.find((r) => r.id === targetReqId)?.lenderName ?? ""
     : "";
+  const presetClaimId = bankStatementRequested
+    ? requirements.find((r) => r.id === targetReqId)?.claimId ?? ""
+    : "";
 
   return (
     <Page label="Documents">
@@ -156,6 +159,7 @@ export default function Documents() {
                 onRequireType={() => setTypeError("Please choose a document type before uploading.")}
                 lenderNames={lenderNames}
                 presetLender={presetLender}
+                presetClaimId={presetClaimId}
                 onUploaded={handleUploaded}
               />
             </section>

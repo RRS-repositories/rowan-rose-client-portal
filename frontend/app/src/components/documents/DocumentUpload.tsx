@@ -25,6 +25,9 @@ interface Props {
   lenderNames: string[];
   /** Pre-selected lender (deep link / requirement card for a specific lender). */
   presetLender?: string;
+  /** CRM claim id for the targeted bank-statement requirement — sent with the
+   *  upload so the backend attributes it to the right claim. */
+  presetClaimId?: string;
   /** Called once a file finishes uploading (optimistic list + requirement update).
    *  lenderName is set for bank statements so the right per-lender requirement clears. */
   onUploaded: (doc: UploadedDoc, requirementUpdated: RequirementKind | null, lenderName?: string) => void;
@@ -42,7 +45,7 @@ interface StagedFile { id: number; file: File }
  *  and start uploading on confirm. Progress is simulated client-side, then the
  *  mock API is called at 100%. */
 export const DocumentUpload = forwardRef<DocumentUploadHandle, Props>(function DocumentUpload(
-  { documentType, onTypeChange, typeError, typeOptions, onRequireType, lenderNames, presetLender, onUploaded },
+  { documentType, onTypeChange, typeError, typeOptions, onRequireType, lenderNames, presetLender, presetClaimId, onUploaded },
   ref,
 ) {
   const inputId = useId();
@@ -52,7 +55,7 @@ export const DocumentUpload = forwardRef<DocumentUploadHandle, Props>(function D
   const seq = useRef(0);
   const timers = useRef<Map<number, number>>(new Map());
   const progressRef = useRef<Map<number, number>>(new Map());
-  const pending = useRef<Map<number, { file: File; type: DocumentType; lenderName?: string }>>(new Map());
+  const pending = useRef<Map<number, { file: File; type: DocumentType; lenderName?: string; claimId?: string }>>(new Map());
 
   const [drag, setDrag] = useState<DragState>("none");
   const [staged, setStaged] = useState<StagedFile[]>([]);
@@ -100,7 +103,7 @@ export const DocumentUpload = forwardRef<DocumentUploadHandle, Props>(function D
     const entry = pending.current.get(id);
     if (!entry) return;
     try {
-      const res = await uploadDocument(entry.file, entry.type);
+      const res = await uploadDocument(entry.file, entry.type, { lender: entry.lenderName, claimId: entry.claimId });
       setUploads((cur) => cur.map((u) => (u.id === id ? { ...u, status: "done", progress: 100 } : u)));
       setLive(`${entry.file.name} uploaded successfully.`);
       onUploaded(res.document, res.requirementUpdated, entry.lenderName);
@@ -171,8 +174,9 @@ export const DocumentUpload = forwardRef<DocumentUploadHandle, Props>(function D
       return;
     }
     const lenderName = isBank ? bankLender : undefined;
+    const claimId = isBank ? presetClaimId : undefined;
     staged.forEach(({ id, file }) => {
-      pending.current.set(id, { file, type: documentType, lenderName });
+      pending.current.set(id, { file, type: documentType, lenderName, claimId });
       setUploads((cur) => [...cur, { id, name: file.name, fileSize: file.size, mime: file.type, progress: 0, status: "uploading" }]);
       startSim(id);
     });
