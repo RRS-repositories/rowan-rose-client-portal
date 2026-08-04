@@ -9,7 +9,9 @@ import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/Icon";
 import { useNotifications } from "@/context/NotificationContext";
 import { getClient } from "@/data/mock";
-import type { Claim, Requirement } from "@/data/types";
+import { REAL_AUTH } from "@/data/realClient";
+import { relativeDays } from "@/lib/format";
+import type { Claim, PortalNotification, Requirement } from "@/data/types";
 
 /**
  * Notifications popover (deferred Phase 6.1 scaffold — built now so the bell
@@ -116,11 +118,16 @@ function buildFeed(client: ReturnType<typeof getClient>): { actions: FeedItem[];
 export function NotificationsMenu({ variant = "icon", placement, className }: Props) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, notifications, markRead } = useNotifications();
   const headingId = useId();
 
-  const { actions, messages } = useMemo(() => buildFeed(getClient()), []);
-  const totalCount = actions.length + messages.length;
+  // Real auth: the feed is the CRM-raised notifications from the context.
+  // Mock mode: keep deriving an actionable feed from the mock client.
+  const { actions, messages } = useMemo(
+    () => (REAL_AUTH ? { actions: [], messages: [] } : buildFeed(getClient())),
+    [],
+  );
+  const totalCount = REAL_AUTH ? notifications.length : actions.length + messages.length;
 
   const { refs, floatingStyles, context } = useFloating({
     open,
@@ -212,6 +219,14 @@ export function NotificationsMenu({ variant = "icon", placement, className }: Pr
                         We'll let you know when there's news on your claims.
                       </p>
                     </div>
+                  ) : REAL_AUTH ? (
+                    <NotificationList
+                      items={notifications}
+                      onSelect={(n) => {
+                        if (!n.read) void markRead([n.id]);
+                        goTo(n.link);
+                      }}
+                    />
                   ) : (
                     <>
                       {actions.length > 0 && (
@@ -224,22 +239,94 @@ export function NotificationsMenu({ variant = "icon", placement, className }: Pr
                   )}
                 </div>
 
-                <footer className="border-t border-outline-variant/20 bg-surface-container-lowest px-md py-sm">
-                  <Link
-                    to="/chat"
-                    onClick={() => setOpen(false)}
-                    className="flex items-center justify-between gap-2 font-button text-button text-primary hover:underline"
-                  >
-                    <span>View all messages</span>
-                    <Icon name="arrow_forward" size={18} />
-                  </Link>
-                </footer>
+                {REAL_AUTH ? (
+                  unreadCount > 0 && (
+                    <footer className="border-t border-outline-variant/20 bg-surface-container-lowest px-md py-sm">
+                      <button
+                        type="button"
+                        onClick={() => void markRead()}
+                        className="flex min-h-[44px] w-full items-center justify-between gap-2 font-button text-button text-primary hover:underline"
+                      >
+                        <span>Mark all as read</span>
+                        <Icon name="done_all" size={18} />
+                      </button>
+                    </footer>
+                  )
+                ) : (
+                  <footer className="border-t border-outline-variant/20 bg-surface-container-lowest px-md py-sm">
+                    <Link
+                      to="/chat"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center justify-between gap-2 font-button text-button text-primary hover:underline"
+                    >
+                      <span>View all messages</span>
+                      <Icon name="arrow_forward" size={18} />
+                    </Link>
+                  </footer>
+                )}
               </div>
             </FloatingFocusManager>
           </FloatingOverlay>
         </FloatingPortal>
       )}
     </>
+  );
+}
+
+/** Material icon per notification kind; unknown (future) kinds still render. */
+const KIND_ICONS: Record<string, string> = {
+  id_request: "badge",
+  bank_statements_request: "account_balance",
+};
+
+/** Real notification feed — CRM-raised rows, newest first. Unread rows carry a
+ *  dot AND bold weight (never colour alone); tapping marks read + navigates. */
+function NotificationList({
+  items, onSelect,
+}: {
+  items: PortalNotification[];
+  onSelect: (n: PortalNotification) => void;
+}) {
+  return (
+    <ul className="py-1">
+      {items.map((n) => (
+        <li key={n.id} className="border-b border-outline-variant/20 last:border-b-0">
+          <button
+            type="button"
+            onClick={() => onSelect(n)}
+            className="flex min-h-[48px] w-full items-start gap-sm px-md py-sm text-left transition-colors hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
+          >
+            <span
+              aria-hidden
+              className="grid h-9 w-9 flex-none place-items-center rounded-full bg-primary/15 text-primary"
+            >
+              <Icon name={KIND_ICONS[n.kind] ?? "notifications"} size={20} fill />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className={cn(
+                  "flex items-center gap-2 font-button text-button text-on-surface",
+                  !n.read && "font-bold",
+                )}
+              >
+                {!n.read && (
+                  <span aria-hidden className="h-2 w-2 flex-none rounded-full bg-primary" />
+                )}
+                {!n.read && <span className="sr-only">Unread — </span>}
+                <span className="min-w-0 truncate">{n.title}</span>
+              </span>
+              <span className="mt-0.5 block truncate font-body text-label font-normal text-on-surface-variant">
+                {n.body}
+              </span>
+              <span className="mt-0.5 block font-body text-label font-normal text-on-surface-variant">
+                {relativeDays(n.createdAt)}
+              </span>
+            </span>
+            <Icon name="chevron_right" size={18} className="mt-1 flex-none text-on-surface-variant" />
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 

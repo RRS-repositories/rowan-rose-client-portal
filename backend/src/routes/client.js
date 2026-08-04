@@ -21,6 +21,7 @@ import {
   getDocumentsByContactId,
   insertClientDocument,
 } from "../crm/repo.js";
+import { getNotificationsByContactId, markNotificationsRead } from "../portal/notificationsRepo.js";
 
 export const clientRouter = Router();
 clientRouter.use(requireAuth);
@@ -62,7 +63,15 @@ clientRouter.get("/bootstrap", async (req, res, next) => {
           getDocumentsByContactId(req.contact),
         ])
       : [[], [], []];
+    // Unread notifications ride along so the bell is right straight after
+    // login; the feed itself comes from GET /client/notifications.
+    let unreadNotifications = 0;
+    if (req.contact) {
+      try { ({ unread: unreadNotifications } = await getNotificationsByContactId(req.contact.id)); }
+      catch (e) { console.warn("[bootstrap] notifications unavailable:", e.message); }
+    }
     res.json({
+      unreadNotifications,
       client: {
         // Client ID = "RR-" + CRM contact id (client_id column is often blank).
         id: req.contact ? `RR-${req.contact.id}` : (u.client_id || ""),
@@ -163,6 +172,28 @@ clientRouter.post("/documents/upload", upload.single("file"), async (req, res, n
         url: await presignGet(key),
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** The client's notification feed (bell) + unread count over the same rows. */
+clientRouter.get("/notifications", async (req, res, next) => {
+  try {
+    if (!req.contact) return res.json({ notifications: [], unread: 0 });
+    res.json(await getNotificationsByContactId(req.contact.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Mark notifications read: body { ids?: string[] } — omitted/empty = all. */
+clientRouter.post("/notifications/read", async (req, res, next) => {
+  try {
+    if (!req.contact) return res.json({ success: true, updated: 0 });
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    const updated = await markNotificationsRead(req.contact.id, ids);
+    res.json({ success: true, updated });
   } catch (err) {
     next(err);
   }

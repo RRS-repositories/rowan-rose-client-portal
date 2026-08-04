@@ -160,3 +160,17 @@ export interface NotificationPreferences {
   paymentUpdates: boolean;
   marketingEmails: boolean;
 }
+
+/** An in-portal notification (bell feed), raised by CRM triggers — e.g. the
+ *  firm asking for ID or bank statements. `kind` is open-ended: unknown kinds
+ *  must still render (title/body/link are self-contained). */
+export interface PortalNotification {
+  id: string;
+  kind: string;               // 'id_request' | 'bank_statements_request' | future
+  title: string;
+  body: string;
+  link: string;               // in-app route to act on it (usually /documents)
+  claimId?: string;           // CRM case id for claim-level asks
+  createdAt: string;          // ISO
+  read: boolean;
+}
