@@ -125,7 +125,7 @@ Portal upload model (unchanged): **ID + Proof of Address = client-level**; **Ban
 ## 6. Financials & offers
 
 - Per-claim financials live on `cases` (`claim_value`, `offer_made`, `redress_amount`, `frl_*`, `fee_band/percentage/amount/vat/total`, `client_payout`, `client_owes`, `payout_scenario`). There is also an analytics-oriented `case_financials` table (uuid id, `claim_amount`, `compensation_awarded`, `fee_*`, `profit`, `roi_percentage`) — **marketing/ROI attribution, not the client-facing figure**; use the `cases` columns for what the client sees.
-- Offer acceptance already exists CRM-side via `cases.offer_accept_token` (uuid) + `offer_accept_email_sent`. The portal's accept action should reuse this token flow (or a CRM endpoint) so the CRM's own offer-acceptance handling runs — not a raw status write. (Note: there are **no Windmill triggers** in this flow.)
+- Offer acceptance already exists CRM-side via `cases.offer_accept_token` (uuid) + `offer_accept_email_sent`. The portal's accept action should reuse this token flow (or a CRM endpoint) so the CRM's own offer-acceptance handling runs — not a raw status write.
 - Fee bands (firm, +VAT): B1 30%/cap£420 · B2 28%/£2,500 · B3 25%/£5,000 · B4 20%/£7,500 · B5 15%/£10,000. The frontend already computes these (`data/financials.ts`) — keep server responses consistent, don't double-apply.
 
 ---
@@ -150,7 +150,7 @@ The `crm` MCP is how the **agent** explores; the **running portal** needs its ow
 - **A. Direct Postgres connection (recommended)** — portal connects to the CRM Postgres with a dedicated role (read clients/claims/documents; insert/update `contacts`). Simplest and fastest; supports both matching/reads and new-signup write-back. The portal's own auth/session tables live in a `portal` schema in the same database — no second database, no Docker.
 - **B. CRM REST API** — portal calls CRM endpoints for all reads and writes. More work on the CRM side; only if you'd rather the portal never touch the DB directly.
 
-There are **no Windmill triggers** involved, so writes do not need to route through a workflow engine.
+Writes do not need to route through a workflow engine — the CRM has no workflow-automation triggers on these tables.
 
 ---
 

@@ -111,7 +111,6 @@ If a design choice fails any of these, change the design, not the floor.
 
 Brad's CRM runs on:
 - AWS hosting · Node.js · PostgreSQL · React
-- Windmill (workflow automation, replaced n8n for most workers)
 - Ollama/Gemma local AI inference + Gemini failover
 - Office 365 email · Twilio SMS · Mattermost notifications · OnlyOffice docs · S3 storage
 - 90k+ contacts, 108k+ claims

@@ -20,7 +20,6 @@ This portal connects into Brad's **existing custom CRM**:
 - Hosting: AWS
 - Stack: Node.js / PostgreSQL / React
 - Scale: ~90k contacts, ~108k claims
-- Workflow automation: Windmill (replaced n8n for most workers)
 - AI inference: Ollama/Gemma local + Gemini failover
 - Email: Office 365
 - SMS: Twilio
