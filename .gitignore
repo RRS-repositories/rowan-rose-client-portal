@@ -41,6 +41,7 @@ stitch_lending_claim_companion/
 **/.obsidian/workspace.json
 **/.obsidian/workspace-mobile.json
 **/.obsidian/graph.json
+/.obsidian/
 
 # Flutter (if used in Phase B)
 .dart_tool/
