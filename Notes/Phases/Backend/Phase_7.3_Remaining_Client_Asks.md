@@ -119,7 +119,12 @@ leaving only Brad's end-to-end testing.
 
 ## Build notes — what actually happened
 
-**Slice A — built 2026-08-05, ⏸ awaiting Brad's DDL approval (nothing applied/deployed yet).**
+**Slice A — built 2026-08-05; DDL approved by Brad and APPLIED + DEPLOYED same day.
+Live: 3 portal functions, 5 `zz_portal_*` triggers on cases/contacts, tracking GRANT
+(`portal_ro` verified reading it — 301 historical completed acceptances), backend +
+frontend deployed, health up. Verified: test claim renders unchanged (not armed), no
+token in API output, `GET /client/offers/227003` → 404 pre-Verify, no-op saves fire
+nothing. Awaiting Brad's end-to-end drill (Verify Outcome on case 227003).**
 
 - Decisions (Brad, 2026-08-05): CHASING DEBT **excluded** from the ask (portal maps
   it to "Claim Closed"); accept is **in-app via backend proxy** (token stays
