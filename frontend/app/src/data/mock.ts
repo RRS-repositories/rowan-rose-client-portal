@@ -159,10 +159,24 @@ export const CLIENT: Client = {
 };
 
 /** Real client data, loaded from the backend after login (Phase 7.1). When set,
- *  the getters below return it instead of the mock CLIENT. Null = mock/demo. */
+ *  the getters below return it instead of the mock CLIENT. Null = mock/demo.
+ *  Every replacement notifies data subscribers so mounted views re-read. */
 let REAL: Client | null = null;
-export const setRealClient = (c: Client | null): void => { REAL = c; };
+export const setRealClient = (c: Client | null): void => {
+  REAL = c;
+  dataListeners.forEach((l) => l());
+  notifyUnread();
+};
 const active = (): Client => REAL ?? CLIENT;
+
+/** Pub/sub for whole-client refreshes (real-auth re-hydration on focus /
+ *  post-acceptance). useMockQuery re-reads its getter when this fires, without
+ *  a loading flash — the data is already in memory. */
+const dataListeners = new Set<() => void>();
+export function subscribeData(listener: () => void): () => void {
+  dataListeners.add(listener);
+  return () => { dataListeners.delete(listener); };
+}
 
 export const getClient = (): Client => active();
 export const getClaim = (id: string): Claim | undefined => active().claims.find((c) => c.id === id);

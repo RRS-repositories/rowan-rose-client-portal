@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fakeDelay } from "@/lib/fakeNetwork";
+import { subscribeData } from "@/data/mock";
 
 interface QueryState<T> { loading: boolean; data: T | null; error: string | null }
 interface QueryResult<T> extends QueryState<T> { refetch: () => void }
@@ -26,6 +27,19 @@ export function useMockQuery<T>(getter: () => T, key: unknown = ""): QueryResult
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, nonce]);
+
+  // Silent re-read when the underlying client data is replaced (real-auth
+  // re-hydration on focus, post-acceptance refresh): no loading flash — the
+  // fresh data is already local.
+  useEffect(() => {
+    return subscribeData(() => {
+      try {
+        setState({ loading: false, data: getterRef.current(), error: null });
+      } catch (err) {
+        setState({ loading: false, data: null, error: err instanceof Error ? err.message : "Something went wrong" });
+      }
+    });
+  }, []);
 
   const refetch = useCallback(() => setNonce((n) => n + 1), []);
   return { ...state, refetch };

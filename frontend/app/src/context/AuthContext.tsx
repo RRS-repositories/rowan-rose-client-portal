@@ -108,6 +108,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Re-hydrate the client's real data whenever the app regains focus, so
+  // CRM-side changes (a new offer, a document request) appear without a
+  // re-login — the same delivery model as the notifications bell. Guarded so a
+  // transient fetch failure never wipes the data already on screen.
+  useEffect(() => {
+    if (!REAL_AUTH || !isAuthenticated) return;
+    const onFocus = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchRealClient().then((c) => { if (c) setRealClient(c); });
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [isAuthenticated]);
+
   const login = useCallback(async (email: string, password: string): Promise<LoginResponse> => {
     const res = await loginClient({ email, password });
     if (res.success && res.user) {
