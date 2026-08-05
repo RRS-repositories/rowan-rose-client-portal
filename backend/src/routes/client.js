@@ -21,6 +21,7 @@ import {
   getDocumentsByContactId,
   insertClientDocument,
   getOfferByClaimId,
+  getResignLink,
 } from "../crm/repo.js";
 import { getNotificationsByContactId, markNotificationsRead } from "../portal/notificationsRepo.js";
 
@@ -244,6 +245,20 @@ clientRouter.post("/offers/:claimId/accept", async (req, res, next) => {
 
     console.log(`[offer-accept] contact ${req.contact.id} accepted offer on case ${found.caseId} via portal`);
     res.json({ success: true, message: "Offer accepted successfully. The lender will process payment within 28 days.", updatedStatus: "Offer Accepted" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** The CRM signing-page link for the claim's live Letter-of-Authority request
+ *  (Phase 7.3 Slice B). Same URL the chase email carries — served only to the
+ *  authenticated owner, only while there's something to sign. */
+clientRouter.get("/claims/:claimId/resign-link", async (req, res, next) => {
+  try {
+    if (!crmEnabled() || !req.contact) return res.status(404).json({ message: "Nothing to sign." });
+    const url = await getResignLink(req.contact.id, req.params.claimId);
+    if (!url) return res.status(404).json({ message: "Nothing to sign." });
+    res.json({ url });
   } catch (err) {
     next(err);
   }

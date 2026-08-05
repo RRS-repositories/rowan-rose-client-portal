@@ -156,6 +156,41 @@ nothing. Awaiting Brad's end-to-end drill (Verify Outcome on case 227003).**
   `/documents`.
 - Notification `link` uses the numeric case id (`/claims/{id}`) — `getClaimById`
   accepts case_number or id, so the route resolves either way.
+- Slice A field finding: the app cached the bootstrap client from login, so Brad's
+  Verify raised the bell but Home/claims stayed stale. Fixed (`d22dac6`): real
+  client re-hydrates on window focus; `useMockQuery` re-reads silently via a
+  `subscribeData` pub/sub — no skeleton flash.
+
+**Slice B discovery (2026-08-05, read-only in CRM-Finalised — done BEFORE DDL):**
+
+- There is **no signature-chase workflow** (`workflow_triggers` types are ID Chase,
+  Questionnaire Chase, Extra Lender Chase, document_chase). The signature ask
+  mechanism is the **Resend LOA flow**:
+  - **Arm** (multiple server.js sites, all via the `decideResendLoa` per-client
+    throttle — queued cases get NO token until their turn): mint
+    `cases.resign_token = uuid, resign_email_sent = false`. Re-arms mint a NEW
+    token every time → token-change is the reliable trigger signal.
+  - **Send** (worker.js ~3990): email from the worker with link
+    `rowanroseclaims.co.uk/resign/{token}`; inserts
+    `client_communications_tracking (client_id, claim_id, type='resend_loa',
+    token, email)`; a Day-N reminder system keys off that row's `created_at`.
+  - **Sign** (`POST` behind `/resign/:token`, server.js ~26860): S3
+    `Signatures/signature.png` (overwrites intake signature), documents row
+    `signature.png` tags `['Signature','Resign']` (contact-level),
+    `contacts.signature_url`, action log `signature_resign`, tracking →
+    `Completed`. **`resign_token` is deliberately NOT nulled** ("allow re-signing")
+    — so armed-ness must be judged per-token via tracking Completed, never by
+    token presence.
+  - **Post-sign propagation**: the case + early-stage siblings (no DSAR/complaint/
+    FOS) → status 'New Lead' for LOA re-papering. Portal-side that maps to
+    "Onboarding" (visible) — as do all LOA statuses — so nothing vanishes.
+- Portal design locked from this: trigger on `UPDATE OF resign_token` (non-null,
+  changed) → kind `signature_request`; requirement kind `signature` shown while
+  the CURRENT token has no Completed tracking row, dropped (not "done") once
+  signed — the token living forever means a done-card would live forever too.
+  V1 sign action routes to the CRM's existing `/resign/{token}` page (spec: no
+  in-portal LoA e-sign); the link is served per-claim by the portal backend,
+  ownership-checked. No new GRANTs needed — tracking SELECT shipped with Slice A.
 
 ## Verification
 

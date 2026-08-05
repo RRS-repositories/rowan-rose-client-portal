@@ -155,6 +155,56 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
+-- Signature / Letter of Authority ask (Phase 7.3 Slice B): fires when the CRM's
+-- Resend LOA flow mints (or re-mints) cases.resign_token — the firm deciding
+-- this client's LoA needs (re-)signing. Every arm mints a NEW token, so the
+-- token-change is the signal; the token is never nulled after signing, so
+-- "already signed" is judged per-token via the tracking row the send creates
+-- (type 'resend_loa', flipped to Completed by the signing page).
+CREATE OR REPLACE FUNCTION portal.notify_signature_request() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = portal, public, pg_temp
+AS $$
+DECLARE
+  lender_name text;
+BEGIN
+  IF current_setting('portal.suppress_notifications', true) = 'on' THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.contact_id IS NULL OR NEW.resign_token IS NULL THEN
+    RETURN NEW;
+  END IF;
+  -- This exact token already signed → never re-ask.
+  IF EXISTS (
+    SELECT 1 FROM public.client_communications_tracking
+     WHERE token::text = NEW.resign_token::text
+       AND type = 'resend_loa' AND status = 'Completed'
+  ) THEN
+    RETURN NEW;
+  END IF;
+
+  lender_name := COALESCE(NULLIF(btrim(NEW.lender), ''),
+                          NULLIF(btrim(NEW.lender_other), ''),
+                          'your lender');
+
+  INSERT INTO portal.notifications (contact_id, claim_id, kind, title, body, link)
+  VALUES (
+    NEW.contact_id, NEW.id, 'signature_request',
+    'We need your signature — ' || lender_name,
+    'Please sign your updated Letter of Authority for your ' || lender_name || ' claim so we can keep things moving. It only takes a minute.',
+    '/claims/' || NEW.id
+  )
+  ON CONFLICT (contact_id, COALESCE(claim_id, 0), kind) WHERE read_at IS NULL
+  DO UPDATE SET created_at = now(),
+                title = EXCLUDED.title,
+                body  = EXCLUDED.body,
+                link  = EXCLUDED.link;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'portal.notify_signature_request: failed for case %: %', NEW.id, SQLERRM;
+  RETURN NEW;
+END;
+$$;
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- SECTION 2 — run as admin (owner of public.contacts / public.cases)
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -196,6 +246,16 @@ CREATE TRIGGER zz_portal_notify_cases_offer_ins
         AND lower(btrim(COALESCE(NEW.status, ''))) IN
             ('upheld', 'offer accepted', 'awaiting payment'))
   EXECUTE FUNCTION portal.notify_offer_ask();
+
+-- Signature ask: arming is always an UPDATE (Resend LOA mints a fresh token on
+-- an existing case), so no INSERT trigger is needed.
+DROP TRIGGER IF EXISTS zz_portal_notify_cases_resign ON public.cases;
+CREATE TRIGGER zz_portal_notify_cases_resign
+  AFTER UPDATE OF resign_token ON public.cases
+  FOR EACH ROW
+  WHEN (NEW.resign_token IS NOT NULL
+        AND NEW.resign_token IS DISTINCT FROM OLD.resign_token)
+  EXECUTE FUNCTION portal.notify_signature_request();
 
 -- Fires on BOTH arms: a status transition into a sendable status with the token
 -- already minted, AND the token being minted (Verify Outcome) while the case is

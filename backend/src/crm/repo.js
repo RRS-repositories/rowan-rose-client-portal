@@ -254,6 +254,54 @@ This agreement is governed by the laws of England and Wales.
 If you have any questions about these terms, please contact your claims handler before signing.`;
 }
 
+// ── Signature / Letter of Authority (Phase 7.3 Slice B) ─────────────────────
+
+/**
+ * Tokens of this contact's SIGNED Resend-LOA requests (tracking rows the
+ * signing page flips to Completed). resign_token is never nulled after signing,
+ * so armed-ness is always judged per-token against this set. Null when the
+ * tracking table isn't readable — callers then show nothing rather than guess.
+ */
+async function getCompletedResignTokens(contactId) {
+  try {
+    const { rows } = await crmQuery(
+      `SELECT token FROM public.client_communications_tracking
+        WHERE client_id = $1 AND type = 'resend_loa' AND status = 'Completed'
+          AND token IS NOT NULL`,
+      [contactId],
+    );
+    return new Set(rows.map((r) => String(r.token)));
+  } catch {
+    return null;
+  }
+}
+
+/** True when this case has a live, not-yet-signed Resend-LOA request. */
+const signatureArmed = (c, completedResignTokens) =>
+  Boolean(c.resign_token) && !completedResignTokens.has(String(c.resign_token));
+
+/**
+ * The CRM signing-page URL for the claim's live Resend-LOA request — the same
+ * link the chase email carries, served only to the authenticated owner. Null
+ * when there's nothing to sign (no token, already signed, hidden claim, or
+ * tracking unreadable).
+ */
+export async function getResignLink(contactId, claimKey) {
+  const numericId = /^\d+$/.test(String(claimKey)) ? Number(claimKey) : -1;
+  const { rows } = await crmQuery(
+    `SELECT id, status, resign_token FROM public.cases
+      WHERE contact_id = $1 AND (case_number = $2 OR id = $3)
+      LIMIT 1`,
+    [contactId, String(claimKey), numericId],
+  );
+  const c = rows[0];
+  if (!c || !c.resign_token || mapStatus(c.status) === null) return null;
+  const completed = await getCompletedResignTokens(contactId);
+  if (completed === null || !signatureArmed(c, completed)) return null;
+  const base = process.env.CRM_PUBLIC_URL || "https://rowanroseclaims.co.uk";
+  return `${base}/resign/${c.resign_token}`;
+}
+
 /**
  * The claim's live offer, in the frontend OfferDetails shape, plus the
  * acceptance token for SERVER-SIDE use only — routes must strip `token` before
@@ -432,7 +480,7 @@ async function getPortalUploads(contactId) {
  * and never a firm-generated document.
  */
 export async function getRequirementsByContactId(contactId) {
-  const [contactRes, casesRes, uploads, acceptedOffers] = await Promise.all([
+  const [contactRes, casesRes, uploads, acceptedOffers, completedResignTokens] = await Promise.all([
     crmQuery(
       `SELECT id_chase_active, id_chase_started_at, identity_status, identity_confirmed_at
          FROM public.contacts WHERE id = $1 LIMIT 1`,
@@ -440,12 +488,13 @@ export async function getRequirementsByContactId(contactId) {
     ),
     crmQuery(
       `SELECT id, case_number, lender, lender_other, status, updated_at,
-              offer_made, offer_accept_token
+              offer_made, offer_accept_token, resign_token
          FROM public.cases WHERE contact_id = $1`,
       [contactId],
     ),
     getPortalUploads(contactId),
     getAcceptedOffers(contactId),
+    getCompletedResignTokens(contactId),
   ]);
   const contact = contactRes.rows[0];
   const reqs = [];
@@ -500,6 +549,30 @@ export async function getRequirementsByContactId(contactId) {
       claimId,
       action: "/documents",
     });
+  }
+
+  // ── Signature / Letter of Authority (per claim — Phase 7.3 Slice B) ──
+  // Shown while the case carries a Resend-LOA token that hasn't been signed
+  // (per-token tracking check — the token itself is never cleared). Once signed
+  // the ask DROPS rather than flipping to done: the token lives forever, so a
+  // done-card would too. Skipped when tracking is unreadable.
+  if (completedResignTokens) {
+    for (const k of casesRes.rows) {
+      if (!signatureArmed(k, completedResignTokens)) continue;
+      if (mapStatus(k.status) === null) continue; // never surface a hidden claim
+      const lender = k.lender || k.lender_other || "your lender";
+      reqs.push({
+        id: `signature-${k.id}`,
+        kind: "signature",
+        title: `Sign your Letter of Authority — ${lender}`,
+        description: `We need an updated signature for your ${lender} claim so we can keep things moving. It only takes a minute.`,
+        icon: "stylus_note",
+        done: false,
+        lenderName: lender,
+        claimId: String(k.id),
+        action: `/claims/${encodeURIComponent(k.case_number || String(k.id))}`,
+      });
+    }
   }
 
   // ── Offer acceptance (per claim / lender — Phase 7.3 Slice A) ──

@@ -278,6 +278,7 @@ const KIND_ICONS: Record<string, string> = {
   id_request: "badge",
   bank_statements_request: "account_balance",
   offer_acceptance: "handshake",
+  signature_request: "stylus_note",
 };
 
 /** Real notification feed — CRM-raised rows, newest first. Unread rows carry a

@@ -22,8 +22,9 @@ export function WhatWeNeedCard({ requirements }: { requirements: Requirement[] }
       </div>
       <ul className="mt-md space-y-sm">
         {requirements.map((r) => {
-          // Offer asks are review-and-sign actions on the claim, not uploads.
+          // Offer and signature asks are actions on the claim page, not uploads.
           const isOffer = r.kind === "offer-acceptance";
+          const isSignature = r.kind === "signature";
           return (
             <li key={r.id}>
               <Link to={`${r.action}?highlight=${r.id}`} className="flex items-center justify-between gap-sm rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-sm skeuo-recessed">
@@ -34,7 +35,13 @@ export function WhatWeNeedCard({ requirements }: { requirements: Requirement[] }
                   <span className="min-w-0 break-words font-button text-button text-on-surface">{r.title}</span>
                 </span>
                 <span className="flex min-h-[48px] flex-none items-center gap-xs rounded-lg bg-primary px-3 font-button text-label text-on-primary skeuo-raise skeuo-press">
-                  {isOffer ? <>Review <Icon name="visibility" size={18} /></> : <>Upload <Icon name="upload" size={18} /></>}
+                  {isOffer ? (
+                    <>Review <Icon name="visibility" size={18} /></>
+                  ) : isSignature ? (
+                    <>Sign <Icon name="stylus_note" size={18} /></>
+                  ) : (
+                    <>Upload <Icon name="upload" size={18} /></>
+                  )}
                 </span>
               </Link>
             </li>

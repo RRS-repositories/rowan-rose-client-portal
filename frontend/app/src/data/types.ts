@@ -38,7 +38,7 @@ export interface Claim {
   offerActionedAt?: string;
 }
 
-export type RequirementKind = "id" | "address" | "bank-statements" | "questionnaire" | "extra-lender" | "offer-acceptance";
+export type RequirementKind = "id" | "address" | "bank-statements" | "questionnaire" | "extra-lender" | "offer-acceptance" | "signature";
 export interface Requirement {
   id: string;
   kind: RequirementKind;

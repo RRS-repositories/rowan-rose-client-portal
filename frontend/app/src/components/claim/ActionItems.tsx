@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
+import { useToast } from "@/components/ui/useToast";
+import { openSigningPage } from "@/api/signature";
 import { phaseOf } from "@/data/statusMap";
 import type { Claim, Requirement } from "@/data/types";
 
@@ -57,17 +60,55 @@ export function ActionItems({ claim, requirements }: { claim: Claim; requirement
                 <p className="mt-0.5 font-body text-body-md text-on-surface-variant">{r.description}</p>
               </div>
             </div>
-            <Link
-              to={`${r.action}?highlight=${r.id}`}
-              aria-label={`Upload — ${r.title}`}
-              className="inline-flex min-h-[48px] flex-none items-center justify-center gap-2 rounded-lg bg-primary px-md font-button text-button text-on-primary skeuo-raise skeuo-primary-glow skeuo-press hover:opacity-95"
-            >
-              <Icon name="upload_file" size={20} />
-              Upload
-            </Link>
+            {r.kind === "signature" ? (
+              <SignNowButton requirement={r} />
+            ) : (
+              <Link
+                to={`${r.action}?highlight=${r.id}`}
+                aria-label={`Upload — ${r.title}`}
+                className="inline-flex min-h-[48px] flex-none items-center justify-center gap-2 rounded-lg bg-primary px-md font-button text-button text-on-primary skeuo-raise skeuo-primary-glow skeuo-press hover:opacity-95"
+              >
+                <Icon name="upload_file" size={20} />
+                Upload
+              </Link>
+            )}
           </div>
         </div>
       ))}
     </section>
+  );
+}
+
+/** Opens the firm's secure signing page for a Letter-of-Authority ask (V1 —
+ *  signing itself stays on the firm's existing page, not in-portal). */
+function SignNowButton({ requirement }: { requirement: Requirement }) {
+  const { push } = useToast();
+  const [opening, setOpening] = useState(false);
+
+  async function sign() {
+    if (!requirement.claimId || opening) return;
+    setOpening(true);
+    const ok = await openSigningPage(requirement.claimId);
+    setOpening(false);
+    if (!ok) {
+      push({
+        title: "Couldn't open the signing page",
+        description: "Please try again in a moment, or contact us and we'll help.",
+        tone: "error",
+      });
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={sign}
+      disabled={opening}
+      aria-label={`Sign — ${requirement.title}`}
+      className="inline-flex min-h-[48px] flex-none items-center justify-center gap-2 rounded-lg bg-primary px-md font-button text-button text-on-primary skeuo-raise skeuo-primary-glow skeuo-press hover:opacity-95 disabled:opacity-60"
+    >
+      <Icon name={opening ? "progress_activity" : "stylus_note"} size={20} className={opening ? "animate-spin" : undefined} />
+      Sign now
+    </button>
   );
 }
