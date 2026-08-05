@@ -161,6 +161,12 @@ nothing. Awaiting Brad's end-to-end drill (Verify Outcome on case 227003).**
   client re-hydrates on window focus; `useMockQuery` re-reads silently via a
   `subscribeData` pub/sub — no skeleton flash.
 
+**Slice B — built 2026-08-05; DDL approved and APPLIED + DEPLOYED same day.**
+Live: 4 portal functions, 6 `zz_portal_*` triggers (new: `zz_portal_notify_cases_resign`).
+Verified post-deploy: health up; test account shows the offer ask done (Brad's Slice A
+accept completed the full pipeline); no signature ask / resign-link 404 while not
+armed. Awaiting Brad's Resend-LOA drill on the test case.
+
 **Slice B discovery (2026-08-05, read-only in CRM-Finalised — done BEFORE DDL):**
 
 - There is **no signature-chase workflow** (`workflow_triggers` types are ID Chase,
