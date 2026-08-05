@@ -201,6 +201,22 @@ new deploy's service worker takes over and checks for updates on focus.
   in-portal LoA e-sign); the link is served per-claim by the portal backend,
   ownership-checked. No new GRANTs needed — tracking SELECT shipped with Slice A.
 
+**⏸ PARKED 2026-08-05 evening — resume here.** Brad's drill found a timing gap:
+the Questionnaire Chase's FIRST action runs +48h after arming (test workflow
+armed 16:55, `next_action_at` Aug 7), and the worker only mints the
+`questionnaire_tokens` row at send time — so the card sat with a dead Start
+button ("still preparing" toast) for the 2-day window. Extra-lender has the same
+risk. **Agreed fix direction (designed, NOT yet implemented/applied):** move both
+asks to their "ready" signals like every other trigger — notification on
+`questionnaire_tokens` INSERT (unsubmitted) and on `client_communications_tracking`
+INSERT (type `extra_lender`); drop `zz_portal_notify_workflow_chases`; gate the
+two requirement cards on link availability (token/tracking row exists) AND the
+chase workflow still being live. No new GRANTs. Frontend unchanged. Also offered:
+one-off bump of the test workflow's `next_action_at` to NOW so Brad can test
+without waiting until Aug 7. **Both awaiting Brad's go.** FOS + offer + signature
+asks are unaffected (already token-mint driven). FOS + extra-lender drill parts
+not yet run.
+
 **Slice C — built 2026-08-05; DDL approved and APPLIED + DEPLOYED same day.**
 Live: 6 portal functions, 8 `zz_portal_*` triggers (new: `zz_portal_notify_workflow_chases`
 on `workflow_triggers` — first trigger on that table — and `zz_portal_notify_cases_fos`),
