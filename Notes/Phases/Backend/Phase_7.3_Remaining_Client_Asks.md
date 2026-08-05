@@ -201,6 +201,14 @@ new deploy's service worker takes over and checks for updates on focus.
   in-portal LoA e-sign); the link is served per-claim by the portal backend,
   ownership-checked. No new GRANTs needed — tracking SELECT shipped with Slice A.
 
+**Slice C — built 2026-08-05; DDL approved and APPLIED + DEPLOYED same day.**
+Live: 6 portal functions, 8 `zz_portal_*` triggers (new: `zz_portal_notify_workflow_chases`
+on `workflow_triggers` — first trigger on that table — and `zz_portal_notify_cases_fos`),
+GRANTs on `workflow_triggers` + `questionnaire_tokens`. Verified post-deploy: health up,
+requirements correctly empty on the test contact (the Slice B signing re-papered the test
+case to 'New Lead', dropping the stale offer ask — designed behaviour), all three link
+endpoints 404 while unarmed. Awaiting Brad's three-part drill.
+
 **Slice C discovery (2026-08-05, read-only in CRM-Finalised — done BEFORE DDL;
 wording + scope approved by Brad same day, all three asks):**
 
