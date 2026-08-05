@@ -52,8 +52,10 @@ export default function Documents() {
   const appliedHighlight = useRef(false);
 
   // Seed local state from the query so uploads can update it optimistically.
+  // Offer asks are review-and-sign actions on the claim page, not uploads —
+  // they never render here.
   useEffect(() => {
-    if (data) setRequirements(data.requirements);
+    if (data) setRequirements(data.requirements.filter((r) => r.kind !== "offer-acceptance"));
   }, [data]);
 
   // Resolve a ?highlight=<requirementId> deep link once requirements load:

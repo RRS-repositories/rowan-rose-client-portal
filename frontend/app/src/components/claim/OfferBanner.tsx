@@ -78,7 +78,7 @@ function PendingOfferBanner({
   onReview,
   onReject,
 }: { claim: Claim; amount: number; offer: OfferDetails | null; onReview: () => void; onReject: () => void }) {
-  const expiry = useMemo(() => (offer ? expiryStatus(offer.expiryDate) : null), [offer]);
+  const expiry = useMemo(() => (offer?.expiryDate ? expiryStatus(offer.expiryDate) : null), [offer]);
 
   return (
     <section
@@ -103,16 +103,18 @@ function PendingOfferBanner({
                 <p className="mt-2 font-body text-label text-on-surface-variant">
                   Received on {formatDate(offer.offerDate)}
                 </p>
-                <p
-                  className={cn(
-                    "mt-0.5 font-body text-label",
-                    expiry?.tone === "critical" && "text-error font-semibold",
-                    expiry?.tone === "warning" && "text-on-tertiary-container font-semibold",
-                    (!expiry || expiry.tone === "ok") && "text-on-surface-variant",
-                  )}
-                >
-                  This offer expires on {formatDate(offer.expiryDate)} ({expiry?.label})
-                </p>
+                {offer.expiryDate && (
+                  <p
+                    className={cn(
+                      "mt-0.5 font-body text-label",
+                      expiry?.tone === "critical" && "text-error font-semibold",
+                      expiry?.tone === "warning" && "text-on-tertiary-container font-semibold",
+                      (!expiry || expiry.tone === "ok") && "text-on-surface-variant",
+                    )}
+                  >
+                    This offer expires on {formatDate(offer.expiryDate)} ({expiry?.label})
+                  </p>
+                )}
               </>
             )}
           </div>

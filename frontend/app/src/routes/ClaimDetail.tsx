@@ -15,9 +15,11 @@ import { OfferBanner } from "@/components/claim/OfferBanner";
 import { OfferRejectionModal } from "@/components/claim/OfferRejectionModal";
 import { ActionItems } from "@/components/claim/ActionItems";
 import { LegalFooter } from "./Dashboard";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useMockQuery } from "@/data/useMockQuery";
 import { getClaim, getRequirements } from "@/data/mock";
-import { getOfferDetails, rejectOffer, type OfferDetails } from "@/data/offers";
+import { REAL_AUTH } from "@/data/realClient";
+import { getOfferDetails, rejectOffer, type OfferDetails } from "@/api/offers";
 import { phaseOf, clientMessage } from "@/data/statusMap";
 import { phaseIcon } from "@/data/phaseTracker";
 import { formatDate } from "@/lib/format";
@@ -170,14 +172,38 @@ export default function ClaimDetail() {
       </div>
 
       {claim && claim.internalStatus === "Offer Received" && (
-        <OfferRejectionModal
-          open={rejectOpen}
-          offerAmount={claim.financials?.offer ?? 0}
-          lenderName={claim.lender.name}
-          submitting={rejecting}
-          onConfirm={handleReject}
-          onCancel={() => { if (!rejecting) setRejectOpen(false); }}
-        />
+        REAL_AUTH ? (
+          // Rejection is not a client self-serve action in the firm's pipeline —
+          // route the client to their handler before they turn an offer down.
+          <ConfirmModal
+            open={rejectOpen}
+            title="Talk to us before rejecting"
+            tone="warning"
+            icon="support_agent"
+            body={
+              <>
+                Rejecting a settlement offer is a big decision, and we want to make
+                sure it's the right one for you. Please speak to your claims handler
+                first so we can explain your options — call{" "}
+                <a href="tel:01615050150" className="font-semibold text-primary underline">0161 505 0150</a>{" "}
+                or send us a message from the Chat tab.
+              </>
+            }
+            confirmLabel="Call 0161 505 0150"
+            cancelLabel="Go back"
+            onConfirm={() => { window.location.href = "tel:01615050150"; }}
+            onCancel={() => setRejectOpen(false)}
+          />
+        ) : (
+          <OfferRejectionModal
+            open={rejectOpen}
+            offerAmount={claim.financials?.offer ?? 0}
+            lenderName={claim.lender.name}
+            submitting={rejecting}
+            onConfirm={handleReject}
+            onCancel={() => { if (!rejecting) setRejectOpen(false); }}
+          />
+        )
       )}
     </Page>
   );

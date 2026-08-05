@@ -12,7 +12,7 @@ import { OfferSummaryCard } from "@/components/claim/OfferSummaryCard";
 import { TermsOfAcceptance } from "@/components/claim/TermsOfAcceptance";
 import { SignatureSection, type SignatureValue, type SignatureSectionRef } from "@/components/claim/SignatureSection";
 import { OfferConfirmationModal } from "@/components/claim/OfferConfirmationModal";
-import { acceptOffer, getOfferDetails, type OfferDetails } from "@/data/offers";
+import { acceptOffer, getOfferDetails, type OfferDetails } from "@/api/offers";
 import { gbp, formatUKDateFull } from "@/lib/format";
 import { cn } from "@/lib/cn";
 

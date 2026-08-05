@@ -18,7 +18,8 @@ export interface OfferDetails {
   lenderName: string;
   offerAmount: number;
   offerDate: string;
-  expiryDate: string;
+  /** Absent on real offers — the CRM has no expiry concept; mock offers set it. */
+  expiryDate?: string;
   offerReference: string;
   termsOfAcceptance: string;
   /** Display percentage (band rate, ex-VAT). Real fee/net come from computeFee. */

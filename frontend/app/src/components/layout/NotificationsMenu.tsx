@@ -277,6 +277,7 @@ export function NotificationsMenu({ variant = "icon", placement, className }: Pr
 const KIND_ICONS: Record<string, string> = {
   id_request: "badge",
   bank_statements_request: "account_balance",
+  offer_acceptance: "handshake",
 };
 
 /** Real notification feed — CRM-raised rows, newest first. Unread rows carry a

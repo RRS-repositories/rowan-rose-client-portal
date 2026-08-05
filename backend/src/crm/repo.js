@@ -95,10 +95,56 @@ function buildTimeline(c) {
     .map(([d, text, icon], i) => ({ id: `t${i}`, text, date: iso(d), icon }));
 }
 
+// ── Offers (Phase 7.3 Slice A) ──────────────────────────────────────────────
+// A case is "armed" for acceptance once Verify Outcome has minted
+// offer_accept_token with a real amount, while the status is one the CRM's
+// acceptance-email flow still treats as sendable. 'CHASING DEBT' is deliberately
+// excluded (Brad, 2026-08-05): the portal renders those claims as closed.
+const OFFER_ASK_STATUSES = new Set(["upheld", "offer accepted", "awaiting payment"]);
+const isOfferAskStatus = (s) => OFFER_ASK_STATUSES.has(String(s || "").trim().toLowerCase());
+const offerArmed = (c) =>
+  Boolean(c.offer_accept_token) && Number(c.offer_made) > 0 && isOfferAskStatus(c.status);
+
+/**
+ * The CRM's per-claim "client signed" signal: client_communications_tracking
+ * rows flipped to Completed by the signing flow. Returns Map<claimId, signedAt>
+ * — or null when the table isn't readable yet (its GRANT ships with the 7.3
+ * DDL); callers must then leave offer state alone rather than guess.
+ */
+async function getAcceptedOffers(contactId) {
+  try {
+    const { rows } = await crmQuery(
+      `SELECT claim_id, completed_at
+         FROM public.client_communications_tracking
+        WHERE client_id = $1 AND type = 'offer_acceptance' AND status = 'Completed'
+          AND claim_id IS NOT NULL`,
+      [contactId],
+    );
+    return new Map(rows.map((r) => [String(r.claim_id), iso(r.completed_at)]));
+  } catch {
+    return null;
+  }
+}
+
 /** Map a raw `cases` row → frontend Claim, or null if the status is hidden. */
-export function mapCaseToClaim(c) {
-  const internalStatus = mapStatus(c.status);
+export function mapCaseToClaim(c, { acceptedOffers = null } = {}) {
+  let internalStatus = mapStatus(c.status);
   if (!internalStatus) return null; // hidden — never expose
+
+  // Armed-offer override: a minted acceptance token the client hasn't signed
+  // shows as "Offer Received" so the review/accept UI opens. The raw status
+  // can't carry this — 'Upheld' maps to FRL Received, and agents advance to
+  // 'Offer Accepted' within a minute of Verify regardless of signing.
+  let offerActionedAt;
+  if (acceptedOffers && offerArmed(c)) {
+    const signedAt = acceptedOffers.get(String(c.id));
+    if (signedAt) {
+      internalStatus = "Offer Accepted";
+      offerActionedAt = signedAt;
+    } else {
+      internalStatus = "Offer Received";
+    }
+  }
 
   const lenderName = c.lender || c.lender_other || "Your lender";
   const offer = num(c.offer_made) ?? num(c.redress_amount);
@@ -122,6 +168,7 @@ export function mapCaseToClaim(c) {
     internalStatus,
     escalated: Boolean(c.fos_active) || isEscalatedStatus(internalStatus),
     openedOn: iso(c.created_at) || iso(c.start_date) || "",
+    offerActionedAt,
     financials,
     timeline: buildTimeline(c),
     unreadMessages: 0, // messages not yet wired (read-only phase)
@@ -131,20 +178,26 @@ export function mapCaseToClaim(c) {
 // ── Claims ──────────────────────────────────────────────────────────────────
 
 // Only the columns the mapper needs — never SELECT * on a 444-column table.
+// offer_accept_token is read for the armed-offer override ONLY: the mapper
+// never serialises it into the Claim.
 const CASE_COLS = `id, contact_id, case_number, lender, lender_other, status,
   claim_value, product_type, offer_made, redress_amount, total_refund,
-  fos_active, created_at, start_date, dsar_sent_at, complaint_submitted_at,
-  frl_date, offer_email_sent_date, payment_received_date, client_paid_date`;
+  offer_accept_token, fos_active, created_at, start_date, dsar_sent_at,
+  complaint_submitted_at, frl_date, offer_email_sent_date,
+  payment_received_date, client_paid_date`;
 
 /** All of a contact's claims, hidden statuses filtered out, newest first. */
 export async function getClaimsByContactId(contactId) {
-  const { rows } = await crmQuery(
-    `SELECT ${CASE_COLS} FROM public.cases
-      WHERE contact_id = $1
-      ORDER BY created_at DESC NULLS LAST`,
-    [contactId],
-  );
-  return rows.map(mapCaseToClaim).filter(Boolean);
+  const [{ rows }, acceptedOffers] = await Promise.all([
+    crmQuery(
+      `SELECT ${CASE_COLS} FROM public.cases
+        WHERE contact_id = $1
+        ORDER BY created_at DESC NULLS LAST`,
+      [contactId],
+    ),
+    getAcceptedOffers(contactId),
+  ]);
+  return rows.map((c) => mapCaseToClaim(c, { acceptedOffers })).filter(Boolean);
 }
 
 /**
@@ -161,7 +214,98 @@ export async function getClaimById(contactId, claimKey) {
     [contactId, String(claimKey), numericId],
   );
   if (!rows[0]) return null;
-  return mapCaseToClaim(rows[0]);
+  return mapCaseToClaim(rows[0], { acceptedOffers: await getAcceptedOffers(contactId) });
+}
+
+// ── Offer details & acceptance (Phase 7.3 Slice A) ──────────────────────────
+
+const gbpFmt = (n) =>
+  `£${Number(n).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Terms of Acceptance text, built from the CRM's own verified figures. Kept in
+ *  step with the mock's buildTermsText (frontend/app/src/data/offers.ts) so the
+ *  client reads the same document in both modes. */
+function buildOfferTerms(lenderName, offerAmount, feePct, feeIncVat, net) {
+  return `TERMS OF ACCEPTANCE
+
+By accepting this offer, you ("the Client") agree to the following terms:
+
+1. SETTLEMENT AMOUNT
+The lender, ${lenderName}, has offered a settlement of ${gbpFmt(offerAmount)} in full and final settlement of your complaint regarding irresponsible lending.
+
+2. FULL AND FINAL SETTLEMENT
+Acceptance of this offer constitutes a full and final settlement of your complaint. You will not be able to pursue any further claims against the lender in relation to this matter.
+
+3. FEES
+Rowan Rose Solicitors will deduct their agreed fee of ${feePct}% (plus VAT) from the settlement amount. The estimated fee, inclusive of VAT, is ${gbpFmt(feeIncVat)}, leaving an estimated net payment to you of ${gbpFmt(net)}.
+
+4. PAYMENT TIMELINE
+The lender has agreed to make payment within 28 days of receiving the signed acceptance. Rowan Rose Solicitors will process your payment within 5 working days of receiving the funds from the lender.
+
+5. WITHDRAWAL
+Once this acceptance is signed and submitted, it cannot be withdrawn. Please ensure you are satisfied with the terms before signing.
+
+6. DATA PROCESSING
+Your signed acceptance will be stored securely in compliance with GDPR. The signature and acceptance record will be shared with the lender as proof of your agreement.
+
+7. GOVERNING LAW
+This agreement is governed by the laws of England and Wales.
+
+If you have any questions about these terms, please contact your claims handler before signing.`;
+}
+
+/**
+ * The claim's live offer, in the frontend OfferDetails shape, plus the
+ * acceptance token for SERVER-SIDE use only — routes must strip `token` before
+ * responding. Null when the claim is hidden, not armed, already past the
+ * acceptance window without signing, or when acceptance state is unreadable
+ * (pre-GRANT window) — never guess about a legal signing step.
+ */
+export async function getOfferByClaimId(contactId, claimKey) {
+  const numericId = /^\d+$/.test(String(claimKey)) ? Number(claimKey) : -1;
+  const { rows } = await crmQuery(
+    `SELECT id, case_number, lender, lender_other, status, offer_made,
+            fee_percentage, fee_total, client_payout, offer_accept_token,
+            frl_outcome_verified_at, updated_at
+       FROM public.cases
+      WHERE contact_id = $1 AND (case_number = $2 OR id = $3)
+      LIMIT 1`,
+    [contactId, String(claimKey), numericId],
+  );
+  const c = rows[0];
+  if (!c || mapStatus(c.status) === null) return null;
+  if (!c.offer_accept_token || !(Number(c.offer_made) > 0)) return null; // not armed
+
+  const acceptedOffers = await getAcceptedOffers(contactId);
+  if (acceptedOffers === null) return null; // acceptance state unknown — stay dark
+  const signedAt = acceptedOffers.get(String(c.id));
+  if (!signedAt && !isOfferAskStatus(c.status)) return null; // window passed unsigned
+
+  const lenderName = c.lender || c.lender_other || "your lender";
+  const offerAmount = Number(c.offer_made);
+  // Verify writes fee_percentage alongside the token; tolerate either 28 or 0.28.
+  const rawPct = Number(c.fee_percentage) || 0;
+  const feePercentage = rawPct > 1 ? Math.round(rawPct) : Math.round(rawPct * 100);
+  const feeIncVat = Number(c.fee_total) || 0;
+  const net = Number(c.client_payout) || 0;
+
+  return {
+    token: c.offer_accept_token,
+    caseId: c.id,
+    offer: {
+      claimId: c.case_number || String(c.id),
+      lenderName,
+      offerAmount,
+      offerDate: iso(c.frl_outcome_verified_at) || iso(c.updated_at) || "",
+      // No expiry exists CRM-side — the field is deliberately absent.
+      offerReference: c.case_number || String(c.id),
+      termsOfAcceptance: buildOfferTerms(lenderName, offerAmount, feePercentage, feeIncVat, net),
+      feePercentage,
+      estimatedFeeAmount: feeIncVat,
+      estimatedNetToClient: net,
+      status: signedAt ? "accepted" : "pending",
+    },
+  };
 }
 
 // ── Requirements (outstanding documents) ────────────────────────────────────
@@ -288,18 +432,20 @@ async function getPortalUploads(contactId) {
  * and never a firm-generated document.
  */
 export async function getRequirementsByContactId(contactId) {
-  const [contactRes, casesRes, uploads] = await Promise.all([
+  const [contactRes, casesRes, uploads, acceptedOffers] = await Promise.all([
     crmQuery(
       `SELECT id_chase_active, id_chase_started_at, identity_status, identity_confirmed_at
          FROM public.contacts WHERE id = $1 LIMIT 1`,
       [contactId],
     ),
     crmQuery(
-      `SELECT id, lender, lender_other, status, updated_at
+      `SELECT id, case_number, lender, lender_other, status, updated_at,
+              offer_made, offer_accept_token
          FROM public.cases WHERE contact_id = $1`,
       [contactId],
     ),
     getPortalUploads(contactId),
+    getAcceptedOffers(contactId),
   ]);
   const contact = contactRes.rows[0];
   const reqs = [];
@@ -322,7 +468,7 @@ export async function getRequirementsByContactId(contactId) {
       icon: "badge",
       done: received,
       receivedOn: received && up ? iso(up.uploaded_at) : undefined,
-      action: "Upload",
+      action: "/documents",
     });
   }
 
@@ -352,8 +498,36 @@ export async function getRequirementsByContactId(contactId) {
       receivedOn: received ? iso(up.uploaded_at) : undefined,
       lenderName: lender,
       claimId,
-      action: "Upload",
+      action: "/documents",
     });
+  }
+
+  // ── Offer acceptance (per claim / lender — Phase 7.3 Slice A) ──
+  // Shown while the offer is armed (token + amount + sendable status); flips to
+  // done once the signing record is Completed; disappears once the case moves
+  // past the acceptance window. Skipped entirely when acceptance state is
+  // unreadable (pre-GRANT window) — never show a legal ask on a guess.
+  if (acceptedOffers) {
+    for (const k of casesRes.rows) {
+      if (!offerArmed(k)) continue;
+      if (mapStatus(k.status) === null) continue; // never surface a hidden claim
+      const lender = k.lender || k.lender_other || "your lender";
+      const signedAt = acceptedOffers.get(String(k.id));
+      reqs.push({
+        id: `offer-${k.id}`,
+        kind: "offer-acceptance",
+        title: `Review and accept your offer — ${lender}`,
+        description: signedAt
+          ? "Accepted — thank you. We'll take it from here and keep you updated."
+          : `${lender} has made an offer to settle your claim. Review the details and accept when you're ready.`,
+        icon: "handshake",
+        done: Boolean(signedAt),
+        receivedOn: signedAt || undefined,
+        lenderName: lender,
+        claimId: String(k.id),
+        action: `/claims/${encodeURIComponent(k.case_number || String(k.id))}`,
+      });
+    }
   }
 
   return reqs;

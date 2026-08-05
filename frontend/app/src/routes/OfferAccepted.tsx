@@ -6,7 +6,7 @@ import { MobileHeader } from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getOfferDetails, type OfferDetails } from "@/data/offers";
+import { getOfferDetails, type OfferDetails } from "@/api/offers";
 import { gbp } from "@/lib/format";
 
 /** Phase 4.1 — Offer accepted success page. Shown immediately after the

@@ -7,7 +7,7 @@ import type { OfferDetails } from "@/data/offers";
 /** Headline financial breakdown for the offer acceptance page. Uses a
  *  description list so screen readers read "Offer Amount: £3,480.00" etc. */
 export function OfferSummaryCard({ offer }: { offer: OfferDetails }) {
-  const expiry = useMemo(() => expiryStatus(offer.expiryDate), [offer.expiryDate]);
+  const expiry = useMemo(() => (offer.expiryDate ? expiryStatus(offer.expiryDate) : null), [offer.expiryDate]);
 
   return (
     <section
@@ -32,17 +32,19 @@ export function OfferSummaryCard({ offer }: { offer: OfferDetails }) {
       <dl className="mt-md grid grid-cols-1 gap-2 border-t border-outline-variant/30 pt-md text-body-md sm:grid-cols-2">
         <MetaRow label="Offer Reference" value={offer.offerReference} />
         <MetaRow label="Offer Date" value={formatDate(offer.offerDate)} />
-        <MetaRow
-          label="Expires"
-          value={formatDate(offer.expiryDate)}
-          valueClassName={cn(
-            "font-body text-label",
-            expiry.tone === "critical" && "text-error font-semibold",
-            expiry.tone === "warning" && "text-on-tertiary-container font-semibold",
-            expiry.tone === "ok" && "text-on-surface-variant",
-          )}
-          hint={expiry.label}
-        />
+        {offer.expiryDate && expiry && (
+          <MetaRow
+            label="Expires"
+            value={formatDate(offer.expiryDate)}
+            valueClassName={cn(
+              "font-body text-label",
+              expiry.tone === "critical" && "text-error font-semibold",
+              expiry.tone === "warning" && "text-on-tertiary-container font-semibold",
+              expiry.tone === "ok" && "text-on-surface-variant",
+            )}
+            hint={expiry.label}
+          />
+        )}
       </dl>
     </section>
   );

@@ -1,0 +1,171 @@
+---
+phase: "7.3"
+area: backend
+title: "Remaining client asks — offer acceptance, signature/LoA, questionnaire, extra-lender, FOS"
+status: in-progress
+depends_on: ["7.2"]
+created: 2026-08-05
+updated: 2026-08-05
+---
+
+# Phase 7.3 — Remaining client asks on the portal
+
+<context>
+Phase 7.2 (commit `291854e`, LIVE) built the generic CRM→portal ask pipe: Postgres
+triggers on CRM tables insert into `portal.notifications` (the table IS the API),
+the bell feed renders any kind, and the Documents/Home requirement cards derive
+asks from live CRM state in `backend/src/crm/repo.js` (`getRequirementsByContactId`).
+Two asks are live: **ID verification** (contact-level, `id_chase_active` false→true)
+and **bank statements** (case status → 'Bank Statements Requested').
+
+The frontend type system already anticipates more: `RequirementKind` includes
+`questionnaire` and `extra-lender`; Phase 4.1 built the **Offer Review +
+E-Signature** UI (currently mock). This phase wires the remaining asks, one slice
+at a time, reusing the exact Phase 7.2 pattern. The CRM codebase lives at
+`~/CRM-Finalised` on **51.21.50.24** (NOT sales_crm); both apps share the same RDS.
+</context>
+
+## Goal
+
+Every remaining firm→client ask (offer acceptance first, then signature/LoA, then
+questionnaire / extra-lender / FOS) raises a portal notification + requirement
+card from a real CRM signal, and the client's action lands back in the CRM —
+leaving only Brad's end-to-end testing.
+
+## Architecture constants (do NOT deviate)
+
+- **Notification pipe:** SECURITY DEFINER functions owned by `portal_app`
+  (Section 1 of `backend/sql/crm_notification_triggers.sql`), triggers created by
+  the table owner `postgres` (Section 2), `zz_` prefix, error-swallowing
+  (`RAISE WARNING`, never break the CRM write), `SET LOCAL
+  portal.suppress_notifications = 'on'` opt-out for bulk scripts,
+  one-unread-per-(contact, claim, kind) dedupe via the partial unique index.
+- **No psql on either host** — apply DDL via node+pg scripts from the app dirs.
+- **Portal DDL** lives in `backend/src/schema.sql`, applied by `npm run migrate`
+  as `portal_app`.
+- **Requirement derivation** stays in `getRequirementsByContactId` — asks derive
+  from CRM state, "received/done" derives from Portal-tagged `documents` rows or
+  the CRM's own completion signal. Never store ask state portal-side.
+- **Hidden statuses never reach the client** (statusMap filtering stands).
+- Notification `kind` is open-ended — the bell renders unknown kinds, so a new
+  trigger can ship before its requirement card.
+
+## Slice A — Offer acceptance (do this first; CRM signal is concrete)
+
+**CRM signal (verified in CRM-Finalised):**
+- The email flow lives in `lib/offer-acceptance-email.js`. The worker sends the
+  acceptance signing-link email when a case reaches
+  `OFFER_ACCEPT_SENDABLE_STATUSES = ['Upheld', 'Offer Accepted', 'CHASING DEBT',
+  'Awaiting Payment']` ('Upheld' is where Verify leaves the case; agents move it
+  to the others within seconds).
+- Cases carry an `offer_accept_token`; sends are tracked (token table kind
+  `offer_acceptance`) and action-logged as `offer_acceptance_email_sent`.
+- On acceptance the CRM writes `{Client_Folder}/Signatures/signature_acceptance_form.png`
+  to S3 + a `documents` row tagged `['Signature', 'Offer Acceptance']`
+  (server.js ~27247), then generates the acceptance form.
+
+**Tasks:**
+1. Trigger `zz_portal_notify_cases_offer` (INSERT + UPDATE OF status) firing on
+   transition into any sendable status. Function `portal.notify_offer_ask()`
+   re-checks inside (Phase 7.2 belt-and-braces style): contact_id present, status
+   still sendable, **no acceptance already recorded** (no 'Offer Acceptance'-tagged
+   documents row / offer not actioned). Kind `offer_acceptance`, lender-named
+   title, link `/claims/:id` (the Phase 4.1 offer screen), `claim_id` set.
+2. Requirement card: per-claim "Review and accept your offer — {lender}" while the
+   case sits in a sendable status with no acceptance recorded; flips to done when
+   the acceptance artifacts exist.
+3. **Accept action — reuse the CRM's existing token flow, do not re-implement
+   e-sign.** The portal backend reads `cases.offer_accept_token` (ownership-checked)
+   and either deep-links the client to the existing signing URL or POSTs to the
+   same public accept endpoint the email link hits. All CRM-side artifact writing
+   (S3 signature PNG, documents row, status flip, action logs, form generation)
+   stays in the CRM. Wire the Phase 4.1 UI to this; delete/bypass its mock accept.
+4. ⚠ Decision for Brad before building: does 'CHASING DEBT' still warrant a
+   portal "accept your offer" ask (gone_to_debt clients), or fire on
+   'Upheld'/'Offer Accepted'/'Awaiting Payment' only? Default to excluding
+   'CHASING DEBT' until he says otherwise.
+
+## Slice B — Signature / Letter of Authority
+
+**CRM signal: NOT yet established — discovery first, build second.**
+- Verified: there is **no** `signature_status`/`has_signature` column on contacts.
+  Signature presence = `documents` rows / S3 `Signatures/` folder contents; the
+  CRM has signature-chase workflows and LOA regeneration tooling.
+- Discovery task (read-only, in CRM-Finalised + RDS): find the authoritative
+  "client has no usable signature/LoA" signal and what arms a chase (mirror the
+  ID-chase pattern: is there a workflow_triggers type? a flag?). Write findings
+  into Build notes BEFORE any DDL.
+- Then: trigger + `signature_request` kind + requirement card. In-portal **LoA
+  e-signing is out of scope** for this phase (it's a legal-document flow — same
+  reason Debt C3 e-sign is its own work); V1 is notify + route to the CRM's
+  existing signing/upload path.
+
+## Slice C — Questionnaire, extra-lender, FOS asks
+
+- `RequirementKind` already has `questionnaire` and `extra-lender`; FOS asks would
+  be a new kind. CRM signals for all three are unconfirmed — each needs the same
+  discovery-first treatment as Slice B, plus **Brad's confirmation of wording and
+  trigger points** before DDL. Ship each as its own trigger + card when confirmed.
+- Do not invent CRM columns or statuses for these — if no clean signal exists,
+  report that back instead of building one into the CRM from the portal repo.
+
+## Out of scope
+
+- Portal-sent email/SMS (CRM automation keeps chasing on every ask).
+- FCM/APNs push (Phase 8.2 — `portal.notifications` remains its future source).
+- Real Messages threads.
+- In-portal LoA e-signing (V1 routes to existing CRM flows).
+- Any schema change to CRM tables (`public.*`) — triggers only.
+
+## Build notes — what actually happened
+
+**Slice A — built 2026-08-05, ⏸ awaiting Brad's DDL approval (nothing applied/deployed yet).**
+
+- Decisions (Brad, 2026-08-05): CHASING DEBT **excluded** from the ask (portal maps
+  it to "Claim Closed"); accept is **in-app via backend proxy** (token stays
+  server-side, POST to the CRM's public `/api/submit-offer-accept`); reject swapped
+  for **"speak to your handler"** guidance on real auth (no CRM reject pathway).
+- Verify-Outcome timing catch: the token is minted **without a status change**
+  (status is already 'Upheld'; agents advance it ~55s later). The UPDATE trigger
+  therefore fires on `UPDATE OF status, offer_accept_token` — the token-mint arm is
+  what catches cases parked at 'Upheld'.
+- Acceptance signal: `client_communications_tracking` (type `offer_acceptance`,
+  status `Completed`) — the only per-claim signal; the acceptance `documents` row is
+  contact-level (name-keyed, overwritten per contact). Gated `GRANT SELECT` to
+  `portal_app` + `portal_ro` ships with the DDL. All portal code degrades to
+  feature-dark (no asks, no override) while the GRANT is missing — never guesses.
+- Claim-mapping override in `mapCaseToClaim`: armed + unsigned → "Offer Received"
+  (fixes 'Upheld'→"FRL Received" dead-end AND premature "Offer Accepted" display);
+  armed + signed → "Offer Accepted" with `offerActionedAt` from `completed_at`.
+  `offer_accept_token` added to CASE_COLS for the check but never serialised.
+- New: `getOfferByClaimId` (CRM's own verified fee figures + server-built terms
+  text; no expiry — field made optional, UI hides it), `GET /client/offers/:claimId`,
+  `POST /client/offers/:claimId/accept` (validates PNG data-URL + terms flag,
+  25s timeout, plain-English failures; re-accept returns success idempotently).
+  Requirement kind `offer-acceptance` (Home card "Review" action → claim page;
+  excluded from Documents grid and ActionItems — OfferBanner is its claim surface).
+  `api/offers.ts` fronts mock/real; real accept re-pulls the bootstrap client after
+  ~1.2s (covers the CRM's fire-and-forget tracking update).
+- Drive-by fix: live ID/bank requirement `action` was the literal string "Upload",
+  which WhatWeNeedCard used as a route (`/Upload?...` → broken link). Now
+  `/documents`.
+- Notification `link` uses the numeric case id (`/claims/{id}`) — `getClaimById`
+  accepts case_number or id, so the route resolves either way.
+
+## Verification
+
+Mirror Phase 7.2's drill — test contact **234852**, case **227003**, plus a second
+account that must see nothing:
+
+1. **Offer:** move the test case into 'Upheld' from the main CRM → bell +
+   lender-named offer notification + requirement card; accept via the portal →
+   CRM shows `Signatures/signature_acceptance_form.png`, tagged documents row,
+   status/action logs; card flips to done; re-trigger raises nothing new
+   (dedupe) once accepted.
+2. **No spurious fires:** no-op saves on the test contact/case fire nothing
+   (`spuriousFire:false` script pattern from 7.2).
+3. **Bulk safety:** a script wrapped in `SET LOCAL portal.suppress_notifications='on'`
+   mass-flipping statuses raises zero notifications (the FRL worker and mass-flip
+   scripts touch these statuses — this is load-bearing, not theoretical).
+4. **Isolation:** second portal account sees no notification, card, or claim.
+5. Each later slice repeats 1–4 with its own trigger action.

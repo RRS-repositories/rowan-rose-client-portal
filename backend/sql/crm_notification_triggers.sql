@@ -95,9 +95,74 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
+-- Offer acceptance ask (Phase 7.3 Slice A): fires when a case is armed for
+-- acceptance — offer_accept_token minted by Verify Outcome — and sits in a
+-- status the acceptance email flow considers sendable. Two paths reach it:
+--   * status transitions into a sendable status while the token exists;
+--   * Verify mints the token while the case is parked at 'Upheld' (Verify does
+--     NOT change status, so the token-mint itself must fire the trigger).
+-- 'CHASING DEBT' is deliberately excluded (Brad, 2026-08-05): the portal
+-- renders those claims as "Claim Closed", so an accept ask there is incoherent.
+-- Reads client_communications_tracking to skip already-accepted offers — the
+-- GRANT for that lives in Section 2.
+CREATE OR REPLACE FUNCTION portal.notify_offer_ask() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = portal, public, pg_temp
+AS $$
+DECLARE
+  lender_name text;
+BEGIN
+  IF current_setting('portal.suppress_notifications', true) = 'on' THEN
+    RETURN NEW;
+  END IF;
+  -- Belt-and-braces re-checks of the trigger WHEN conditions, plus the checks
+  -- that need queries. Mirrors lib/offer-acceptance-email.js: armed = token
+  -- present, £0 offers never surface.
+  IF NEW.contact_id IS NULL
+     OR NEW.offer_accept_token IS NULL
+     OR COALESCE(NEW.offer_made, 0) <= 0
+     OR lower(btrim(COALESCE(NEW.status, ''))) NOT IN
+        ('upheld', 'offer accepted', 'awaiting payment') THEN
+    RETURN NEW;
+  END IF;
+  -- Already accepted (signing page completed) → never re-ask.
+  IF EXISTS (
+    SELECT 1 FROM public.client_communications_tracking
+     WHERE claim_id = NEW.id AND type = 'offer_acceptance' AND status = 'Completed'
+  ) THEN
+    RETURN NEW;
+  END IF;
+
+  lender_name := COALESCE(NULLIF(btrim(NEW.lender), ''),
+                          NULLIF(btrim(NEW.lender_other), ''),
+                          'your lender');
+
+  INSERT INTO portal.notifications (contact_id, claim_id, kind, title, body, link)
+  VALUES (
+    NEW.contact_id, NEW.id, 'offer_acceptance',
+    'Your offer is ready to accept — ' || lender_name,
+    'Good news: ' || lender_name || ' has made an offer to settle your claim. Review the details and accept it when you''re ready.',
+    '/claims/' || NEW.id
+  )
+  ON CONFLICT (contact_id, COALESCE(claim_id, 0), kind) WHERE read_at IS NULL
+  DO UPDATE SET created_at = now(),
+                title = EXCLUDED.title,
+                body  = EXCLUDED.body,
+                link  = EXCLUDED.link;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'portal.notify_offer_ask: failed for case %: %', NEW.id, SQLERRM;
+  RETURN NEW;
+END;
+$$;
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- SECTION 2 — run as admin (owner of public.contacts / public.cases)
 -- ═══════════════════════════════════════════════════════════════════════════
+
+-- Phase 7.3 Slice A: the offer trigger function (and the portal's requirement
+-- derivation via portal_ro) read acceptance state from the signing-page
+-- tracking table. Read-only on one table — no other automation table is opened.
+GRANT SELECT ON public.client_communications_tracking TO portal_app, portal_ro;
 
 DROP TRIGGER IF EXISTS zz_portal_notify_contacts ON public.contacts;
 CREATE TRIGGER zz_portal_notify_contacts
@@ -122,3 +187,27 @@ CREATE TRIGGER zz_portal_notify_cases_upd
   WHEN (NEW.status IS DISTINCT FROM OLD.status
         AND lower(btrim(COALESCE(NEW.status, ''))) = 'bank statements requested')
   EXECUTE FUNCTION portal.notify_bank_statements_request();
+
+DROP TRIGGER IF EXISTS zz_portal_notify_cases_offer_ins ON public.cases;
+CREATE TRIGGER zz_portal_notify_cases_offer_ins
+  AFTER INSERT ON public.cases
+  FOR EACH ROW
+  WHEN (NEW.offer_accept_token IS NOT NULL
+        AND lower(btrim(COALESCE(NEW.status, ''))) IN
+            ('upheld', 'offer accepted', 'awaiting payment'))
+  EXECUTE FUNCTION portal.notify_offer_ask();
+
+-- Fires on BOTH arms: a status transition into a sendable status with the token
+-- already minted, AND the token being minted (Verify Outcome) while the case is
+-- parked in a sendable status — Verify does not change status, so without the
+-- token arm a case left at 'Upheld' would never notify.
+DROP TRIGGER IF EXISTS zz_portal_notify_cases_offer_upd ON public.cases;
+CREATE TRIGGER zz_portal_notify_cases_offer_upd
+  AFTER UPDATE OF status, offer_accept_token ON public.cases
+  FOR EACH ROW
+  WHEN (NEW.offer_accept_token IS NOT NULL
+        AND lower(btrim(COALESCE(NEW.status, ''))) IN
+            ('upheld', 'offer accepted', 'awaiting payment')
+        AND (NEW.status IS DISTINCT FROM OLD.status
+             OR NEW.offer_accept_token IS DISTINCT FROM OLD.offer_accept_token))
+  EXECUTE FUNCTION portal.notify_offer_ask();

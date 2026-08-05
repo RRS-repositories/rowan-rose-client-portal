@@ -20,6 +20,7 @@ import {
   getRequirementsByContactId,
   getDocumentsByContactId,
   insertClientDocument,
+  getOfferByClaimId,
 } from "../crm/repo.js";
 import { getNotificationsByContactId, markNotificationsRead } from "../portal/notificationsRepo.js";
 
@@ -172,6 +173,77 @@ clientRouter.post("/documents/upload", upload.single("file"), async (req, res, n
         url: await presignGet(key),
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Offers (Phase 7.3 Slice A) ──────────────────────────────────────────────
+// The portal is a client of the CRM's EXISTING acceptance pipeline: the token
+// is read server-side (never sent to the browser) and the signed acceptance is
+// forwarded to the same public endpoint the email signing page uses. All
+// artifact writing (S3 signature PNG, documents row, status flip, fee
+// post-processing) stays in the CRM.
+const CRM_PUBLIC_URL = process.env.CRM_PUBLIC_URL || "https://rowanroseclaims.co.uk";
+// A drawn signature PNG is tens of KB; 1.5M base64 chars ≈ 1.1MB binary.
+const MAX_SIGNATURE_CHARS = 1_500_000;
+
+/** The claim's live offer (fee figures are the CRM's own verified numbers). */
+clientRouter.get("/offers/:claimId", async (req, res, next) => {
+  try {
+    if (!crmEnabled() || !req.contact) return res.status(404).json({ message: "Offer not found." });
+    const found = await getOfferByClaimId(req.contact.id, req.params.claimId);
+    if (!found) return res.status(404).json({ message: "Offer not found." });
+    res.json({ offer: found.offer }); // token deliberately stripped
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Submit the signed acceptance → CRM's public accept endpoint. */
+clientRouter.post("/offers/:claimId/accept", async (req, res, next) => {
+  try {
+    if (!crmEnabled() || !req.contact) return res.status(404).json({ success: false, message: "Offer not found." });
+
+    const signatureData = String(req.body?.signatureData || "");
+    if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(signatureData) || signatureData.length > MAX_SIGNATURE_CHARS) {
+      return res.status(400).json({ success: false, message: "Please draw your signature and try again." });
+    }
+    if (req.body?.agreedToTerms !== true) {
+      return res.status(400).json({ success: false, message: "Please read and agree to the Terms of Acceptance first." });
+    }
+
+    const found = await getOfferByClaimId(req.contact.id, req.params.claimId);
+    if (!found) return res.status(404).json({ success: false, message: "Offer not found." });
+    if (found.offer.status === "accepted") {
+      return res.json({ success: true, message: "This offer has already been accepted.", updatedStatus: "Offer Accepted" });
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25_000);
+    let crmRes;
+    try {
+      crmRes = await fetch(`${CRM_PUBLIC_URL}/api/submit-offer-accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: found.token, signatureData }),
+        signal: controller.signal,
+      });
+    } catch (e) {
+      console.error(`[offer-accept] CRM call failed for case ${found.caseId}:`, e.message);
+      return res.status(502).json({ success: false, message: "We couldn't submit your acceptance just now. Please try again in a few minutes." });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    const body = await crmRes.json().catch(() => ({}));
+    if (!crmRes.ok || body.success !== true) {
+      console.error(`[offer-accept] CRM rejected acceptance for case ${found.caseId}: HTTP ${crmRes.status} ${body.message || ""}`);
+      return res.status(502).json({ success: false, message: "We couldn't submit your acceptance just now. Please try again, or contact us and we'll sort it." });
+    }
+
+    console.log(`[offer-accept] contact ${req.contact.id} accepted offer on case ${found.caseId} via portal`);
+    res.json({ success: true, message: "Offer accepted successfully. The lender will process payment within 28 days.", updatedStatus: "Offer Accepted" });
   } catch (err) {
     next(err);
   }

@@ -11,8 +11,11 @@ export function ActionItems({ claim, requirements }: { claim: Claim; requirement
   const phase = phaseOf(claim);
   const inactive = phase === "Closed" || phase === "Completed";
   // Client-level requirements (ID, Proof of Address) show on every claim; lender-
-  // specific ones (bank statements) only on the claim they belong to.
-  const outstanding = inactive ? [] : requirements.filter((r) => !r.done && (!r.claimId || r.claimId === claim.id));
+  // specific ones (bank statements) only on the claim they belong to. Offer asks
+  // are excluded — <OfferBanner> directly above is their surface on this page.
+  const outstanding = inactive
+    ? []
+    : requirements.filter((r) => !r.done && r.kind !== "offer-acceptance" && (!r.claimId || r.claimId === claim.id));
   // Offer review is surfaced by <OfferBanner> directly above this section, so we
   // no longer duplicate it here — ActionItems is for outstanding requirements
   // (ID, address, bank statements) only.
