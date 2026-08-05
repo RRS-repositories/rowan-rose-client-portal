@@ -18,6 +18,22 @@ export default defineConfig({
       : [
           VitePWA({
             registerType: "autoUpdate",
+            workbox: {
+              // Navigations go network-first: every online visit gets the
+              // CURRENT shell (which references the current hashed assets),
+              // killing the serve-stale-then-maybe-reload window that twice
+              // shipped dead buttons to an open portal. The cached copy is
+              // only the offline/slow-network fallback (3s timeout) — the
+              // portal is online-only anyway (all data comes from the API).
+              navigateFallback: null,
+              runtimeCaching: [
+                {
+                  urlPattern: ({ request }) => request.mode === "navigate",
+                  handler: "NetworkFirst",
+                  options: { cacheName: "pages", networkTimeoutSeconds: 3 },
+                },
+              ],
+            },
             includeAssets: ["favicon.svg", "apple-touch-icon-180x180.png"],
             manifest: {
               name: "Rowan Rose — Client Portal",
