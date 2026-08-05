@@ -205,6 +205,96 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
+-- Questionnaire / extra-lender asks (Phase 7.3 Slice C): fired from the CRM's
+-- chase-workflow registry — arming either chase inserts a workflow_triggers row
+-- (staff manual or Nova). One function, per-type wording. Contact-level asks
+-- (claim_id NULL); the requirement card clears when the workflow completes.
+CREATE OR REPLACE FUNCTION portal.notify_chase_workflow() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = portal, public, pg_temp
+AS $$
+DECLARE
+  wf text;
+  n_kind text; n_title text; n_body text;
+BEGIN
+  IF current_setting('portal.suppress_notifications', true) = 'on' THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.client_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+  wf := lower(replace(COALESCE(NEW.workflow_type, ''), '_', ' '));
+  IF wf = 'questionnaire chase' THEN
+    n_kind  := 'questionnaire_request';
+    n_title := 'Please fill in your questionnaire';
+    n_body  := 'We need a few details from you to progress your claim. It only takes a few minutes.';
+  ELSIF wf = 'extra lender chase' THEN
+    n_kind  := 'extra_lender_request';
+    n_title := 'Do you have claims with other lenders?';
+    n_body  := 'Tell us which other lenders you borrowed from so we can check whether you have further claims.';
+  ELSE
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO portal.notifications (contact_id, claim_id, kind, title, body, link)
+  VALUES (NEW.client_id, NULL, n_kind, n_title, n_body, '/dashboard')
+  ON CONFLICT (contact_id, COALESCE(claim_id, 0), kind) WHERE read_at IS NULL
+  DO UPDATE SET created_at = now(),
+                title = EXCLUDED.title,
+                body  = EXCLUDED.body,
+                link  = EXCLUDED.link;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'portal.notify_chase_workflow: failed for contact %: %', NEW.client_id, SQLERRM;
+  RETURN NEW;
+END;
+$$;
+
+-- FOS referral ask (Phase 7.3 Slice C): the worker mints cases.fos_referral_token
+-- when a case reaches 'FOS Acceptance Form Sent' and emails the /fos-retainer
+-- e-sign page — same token-mint signal as offers/resign. Skips tokens already
+-- completed on the signing tracking table (token-keyed; tokens are unique).
+CREATE OR REPLACE FUNCTION portal.notify_fos_referral() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = portal, public, pg_temp
+AS $$
+DECLARE
+  lender_name text;
+BEGIN
+  IF current_setting('portal.suppress_notifications', true) = 'on' THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.contact_id IS NULL OR NEW.fos_referral_token IS NULL THEN
+    RETURN NEW;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.client_communications_tracking
+     WHERE token::text = NEW.fos_referral_token::text AND status = 'Completed'
+  ) THEN
+    RETURN NEW;
+  END IF;
+
+  lender_name := COALESCE(NULLIF(btrim(NEW.lender), ''),
+                          NULLIF(btrim(NEW.lender_other), ''),
+                          'your lender');
+
+  INSERT INTO portal.notifications (contact_id, claim_id, kind, title, body, link)
+  VALUES (
+    NEW.contact_id, NEW.id, 'fos_referral',
+    'Your claim can go to the Ombudsman — ' || lender_name,
+    'The lender''s response wasn''t good enough. Review and approve referring your ' || lender_name || ' claim to the Financial Ombudsman Service.',
+    '/claims/' || NEW.id
+  )
+  ON CONFLICT (contact_id, COALESCE(claim_id, 0), kind) WHERE read_at IS NULL
+  DO UPDATE SET created_at = now(),
+                title = EXCLUDED.title,
+                body  = EXCLUDED.body,
+                link  = EXCLUDED.link;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'portal.notify_fos_referral: failed for case %: %', NEW.id, SQLERRM;
+  RETURN NEW;
+END;
+$$;
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- SECTION 2 — run as admin (owner of public.contacts / public.cases)
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -213,6 +303,28 @@ $$;
 -- derivation via portal_ro) read acceptance state from the signing-page
 -- tracking table. Read-only on one table — no other automation table is opened.
 GRANT SELECT ON public.client_communications_tracking TO portal_app, portal_ro;
+
+-- Phase 7.3 Slice C: the requirement derivation reads the chase-workflow
+-- registry (is a questionnaire / extra-lender chase active?) and the
+-- questionnaire token table (to serve the client their form link).
+GRANT SELECT ON public.workflow_triggers TO portal_app, portal_ro;
+GRANT SELECT ON public.questionnaire_tokens TO portal_ro;
+
+DROP TRIGGER IF EXISTS zz_portal_notify_workflow_chases ON public.workflow_triggers;
+CREATE TRIGGER zz_portal_notify_workflow_chases
+  AFTER INSERT ON public.workflow_triggers
+  FOR EACH ROW
+  WHEN (NEW.workflow_type IN ('Questionnaire Chase', 'questionnaire_chase',
+                              'Extra Lender Chase', 'extra_lender_chase'))
+  EXECUTE FUNCTION portal.notify_chase_workflow();
+
+DROP TRIGGER IF EXISTS zz_portal_notify_cases_fos ON public.cases;
+CREATE TRIGGER zz_portal_notify_cases_fos
+  AFTER UPDATE OF fos_referral_token ON public.cases
+  FOR EACH ROW
+  WHEN (NEW.fos_referral_token IS NOT NULL
+        AND NEW.fos_referral_token IS DISTINCT FROM OLD.fos_referral_token)
+  EXECUTE FUNCTION portal.notify_fos_referral();
 
 DROP TRIGGER IF EXISTS zz_portal_notify_contacts ON public.contacts;
 CREATE TRIGGER zz_portal_notify_contacts

@@ -22,6 +22,9 @@ import {
   insertClientDocument,
   getOfferByClaimId,
   getResignLink,
+  getQuestionnaireLink,
+  getExtraLenderLink,
+  getFosLink,
 } from "../crm/repo.js";
 import { getNotificationsByContactId, markNotificationsRead } from "../portal/notificationsRepo.js";
 
@@ -258,6 +261,41 @@ clientRouter.get("/claims/:claimId/resign-link", async (req, res, next) => {
     if (!crmEnabled() || !req.contact) return res.status(404).json({ message: "Nothing to sign." });
     const url = await getResignLink(req.contact.id, req.params.claimId);
     if (!url) return res.status(404).json({ message: "Nothing to sign." });
+    res.json({ url });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Form links for the Slice C asks — each serves the CRM's existing token page
+ *  to the authenticated owner only, 404 when there's nothing to act on. */
+clientRouter.get("/questionnaire-link", async (req, res, next) => {
+  try {
+    if (!crmEnabled() || !req.contact) return res.status(404).json({ message: "Nothing to fill in." });
+    const url = await getQuestionnaireLink(req.contact.id);
+    if (!url) return res.status(404).json({ message: "Nothing to fill in." });
+    res.json({ url });
+  } catch (err) {
+    next(err);
+  }
+});
+
+clientRouter.get("/extra-lender-link", async (req, res, next) => {
+  try {
+    if (!crmEnabled() || !req.contact) return res.status(404).json({ message: "Nothing to fill in." });
+    const url = await getExtraLenderLink(req.contact.id);
+    if (!url) return res.status(404).json({ message: "Nothing to fill in." });
+    res.json({ url });
+  } catch (err) {
+    next(err);
+  }
+});
+
+clientRouter.get("/claims/:claimId/fos-link", async (req, res, next) => {
+  try {
+    if (!crmEnabled() || !req.contact) return res.status(404).json({ message: "Nothing to review." });
+    const url = await getFosLink(req.contact.id, req.params.claimId);
+    if (!url) return res.status(404).json({ message: "Nothing to review." });
     res.json({ url });
   } catch (err) {
     next(err);

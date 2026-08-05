@@ -279,6 +279,9 @@ const KIND_ICONS: Record<string, string> = {
   bank_statements_request: "account_balance",
   offer_acceptance: "handshake",
   signature_request: "stylus_note",
+  questionnaire_request: "assignment",
+  extra_lender_request: "playlist_add",
+  fos_referral: "gavel",
 };
 
 /** Real notification feed — CRM-raised rows, newest first. Unread rows carry a

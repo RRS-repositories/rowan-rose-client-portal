@@ -201,6 +201,32 @@ new deploy's service worker takes over and checks for updates on focus.
   in-portal LoA e-sign); the link is served per-claim by the portal backend,
   ownership-checked. No new GRANTs needed — tracking SELECT shipped with Slice A.
 
+**Slice C discovery (2026-08-05, read-only in CRM-Finalised — done BEFORE DDL;
+wording + scope approved by Brad same day, all three asks):**
+
+- **Questionnaire** (contact-level): armed by a `workflow_triggers` INSERT, type
+  'Questionnaire Chase'/'questionnaire_chase' (staff manual or Nova). The worker
+  mints a `questionnaire_tokens` row (type 2 = IRL) at SEND time and emails
+  `/questionnaire/token/{token}` (47h throttle); it self-completes the workflow if
+  `document_checklist.questionnaire` is already ticked. Ask clears when the
+  workflow leaves pending/active/awaiting_response.
+- **Extra lender** (contact-level): armed by `workflow_triggers` type 'Extra
+  Lender Chase'/'extra_lender_chase'; a 4-step reminder engine (day-based, off the
+  tracking row type `extra_lender`) emails `/loa-form/{token}`. Multiple server
+  submit paths complete the workflow.
+- **FOS referral** (per claim): when a case hits status 'FOS Acceptance Form Sent'
+  (maps to visible "FOS Submitted"), the worker mints `cases.fos_referral_token`
+  and emails the `/fos-retainer/{token}` e-sign page — same token-mint pattern as
+  offers/resign. Completion judged per-token via tracking Completed (token-keyed,
+  type left unfiltered — tokens are unique uuids).
+- New DDL scope (gated): `zz_portal_notify_workflow_chases` (INSERT on
+  `workflow_triggers`, both chase types → one function with per-type wording) and
+  `zz_portal_notify_cases_fos` (UPDATE OF fos_referral_token); GRANT SELECT on
+  `workflow_triggers` (portal_app + portal_ro) and `questionnaire_tokens`
+  (portal_ro, link lookup). Form links are served per-contact/claim by the portal
+  backend (resign-link pattern) and open the CRM's existing pages — no in-portal
+  forms this slice.
+
 ## Verification
 
 Mirror Phase 7.2's drill — test contact **234852**, case **227003**, plus a second

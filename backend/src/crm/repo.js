@@ -257,17 +257,17 @@ If you have any questions about these terms, please contact your claims handler 
 // ── Signature / Letter of Authority (Phase 7.3 Slice B) ─────────────────────
 
 /**
- * Tokens of this contact's SIGNED Resend-LOA requests (tracking rows the
- * signing page flips to Completed). resign_token is never nulled after signing,
- * so armed-ness is always judged per-token against this set. Null when the
+ * Tokens this contact has COMPLETED on the signing tracking table (any type —
+ * tokens are unique uuids, so no type filter is needed). Case tokens
+ * (resign_token, fos_referral_token) are never nulled after completion, so
+ * armed-ness is always judged per-token against this set. Null when the
  * tracking table isn't readable — callers then show nothing rather than guess.
  */
-async function getCompletedResignTokens(contactId) {
+async function getCompletedTrackingTokens(contactId) {
   try {
     const { rows } = await crmQuery(
       `SELECT token FROM public.client_communications_tracking
-        WHERE client_id = $1 AND type = 'resend_loa' AND status = 'Completed'
-          AND token IS NOT NULL`,
+        WHERE client_id = $1 AND status = 'Completed' AND token IS NOT NULL`,
       [contactId],
     );
     return new Set(rows.map((r) => String(r.token)));
@@ -277,8 +277,89 @@ async function getCompletedResignTokens(contactId) {
 }
 
 /** True when this case has a live, not-yet-signed Resend-LOA request. */
-const signatureArmed = (c, completedResignTokens) =>
-  Boolean(c.resign_token) && !completedResignTokens.has(String(c.resign_token));
+const signatureArmed = (c, completedTokens) =>
+  Boolean(c.resign_token) && !completedTokens.has(String(c.resign_token));
+
+/** True when this case has a live, not-yet-approved FOS referral. */
+const fosArmed = (c, completedTokens) =>
+  Boolean(c.fos_referral_token) && !completedTokens.has(String(c.fos_referral_token));
+
+/**
+ * Which chase workflows are live for this contact (Phase 7.3 Slice C) — the
+ * CRM's workflow_triggers registry drives the questionnaire and extra-lender
+ * asks. Null when the registry isn't readable (pre-GRANT) — show nothing.
+ */
+async function getActiveChaseWorkflows(contactId) {
+  try {
+    const { rows } = await crmQuery(
+      `SELECT workflow_type FROM public.workflow_triggers
+        WHERE client_id = $1
+          AND workflow_type IN ('Questionnaire Chase', 'questionnaire_chase',
+                                'Extra Lender Chase', 'extra_lender_chase')
+          AND status IN ('pending', 'active', 'awaiting_response')`,
+      [contactId],
+    );
+    const types = new Set(rows.map((r) => String(r.workflow_type).toLowerCase().replace(/_/g, " ")));
+    return { questionnaire: types.has("questionnaire chase"), extraLender: types.has("extra lender chase") };
+  } catch {
+    return null;
+  }
+}
+
+const CRM_PUBLIC_BASE = () => process.env.CRM_PUBLIC_URL || "https://rowanroseclaims.co.uk";
+
+/** The client's live questionnaire form URL — the same token page the chase
+ *  email carries. Null while the worker hasn't minted a token yet (it does so
+ *  within its next cycle after arming). */
+export async function getQuestionnaireLink(contactId) {
+  try {
+    const { rows } = await crmQuery(
+      `SELECT token FROM public.questionnaire_tokens
+        WHERE contact_id = $1 AND submitted = false
+        ORDER BY (questionnaire_type = 2) DESC
+        LIMIT 1`,
+      [contactId],
+    );
+    if (!rows[0]) return null;
+    return `${CRM_PUBLIC_BASE()}/questionnaire/token/${rows[0].token}`;
+  } catch {
+    return null;
+  }
+}
+
+/** The client's live extra-lender selection URL (from the tracking row the
+ *  chase engine keys its reminders on). Null before the first send. */
+export async function getExtraLenderLink(contactId) {
+  try {
+    const { rows } = await crmQuery(
+      `SELECT token FROM public.client_communications_tracking
+        WHERE client_id = $1 AND type = 'extra_lender'
+          AND token IS NOT NULL AND status IS DISTINCT FROM 'Completed'
+        LIMIT 1`,
+      [contactId],
+    );
+    if (!rows[0]) return null;
+    return `${CRM_PUBLIC_BASE()}/loa-form/${rows[0].token}`;
+  } catch {
+    return null;
+  }
+}
+
+/** The claim's live FOS retainer e-sign URL — only while armed and unsigned. */
+export async function getFosLink(contactId, claimKey) {
+  const numericId = /^\d+$/.test(String(claimKey)) ? Number(claimKey) : -1;
+  const { rows } = await crmQuery(
+    `SELECT id, status, fos_referral_token FROM public.cases
+      WHERE contact_id = $1 AND (case_number = $2 OR id = $3)
+      LIMIT 1`,
+    [contactId, String(claimKey), numericId],
+  );
+  const c = rows[0];
+  if (!c || !c.fos_referral_token || mapStatus(c.status) === null) return null;
+  const completed = await getCompletedTrackingTokens(contactId);
+  if (completed === null || !fosArmed(c, completed)) return null;
+  return `${CRM_PUBLIC_BASE()}/fos-retainer/${c.fos_referral_token}`;
+}
 
 /**
  * The CRM signing-page URL for the claim's live Resend-LOA request — the same
@@ -296,10 +377,9 @@ export async function getResignLink(contactId, claimKey) {
   );
   const c = rows[0];
   if (!c || !c.resign_token || mapStatus(c.status) === null) return null;
-  const completed = await getCompletedResignTokens(contactId);
+  const completed = await getCompletedTrackingTokens(contactId);
   if (completed === null || !signatureArmed(c, completed)) return null;
-  const base = process.env.CRM_PUBLIC_URL || "https://rowanroseclaims.co.uk";
-  return `${base}/resign/${c.resign_token}`;
+  return `${CRM_PUBLIC_BASE()}/resign/${c.resign_token}`;
 }
 
 /**
@@ -480,7 +560,7 @@ async function getPortalUploads(contactId) {
  * and never a firm-generated document.
  */
 export async function getRequirementsByContactId(contactId) {
-  const [contactRes, casesRes, uploads, acceptedOffers, completedResignTokens] = await Promise.all([
+  const [contactRes, casesRes, uploads, acceptedOffers, completedTokens, chases] = await Promise.all([
     crmQuery(
       `SELECT id_chase_active, id_chase_started_at, identity_status, identity_confirmed_at
          FROM public.contacts WHERE id = $1 LIMIT 1`,
@@ -488,13 +568,14 @@ export async function getRequirementsByContactId(contactId) {
     ),
     crmQuery(
       `SELECT id, case_number, lender, lender_other, status, updated_at,
-              offer_made, offer_accept_token, resign_token
+              offer_made, offer_accept_token, resign_token, fos_referral_token
          FROM public.cases WHERE contact_id = $1`,
       [contactId],
     ),
     getPortalUploads(contactId),
     getAcceptedOffers(contactId),
-    getCompletedResignTokens(contactId),
+    getCompletedTrackingTokens(contactId),
+    getActiveChaseWorkflows(contactId),
   ]);
   const contact = contactRes.rows[0];
   const reqs = [];
@@ -551,14 +632,63 @@ export async function getRequirementsByContactId(contactId) {
     });
   }
 
+  // ── Questionnaire + extra-lender (contact-level — Phase 7.3 Slice C) ──
+  // Driven by the CRM's live chase workflows; the ask drops when the workflow
+  // completes (form submitted / checklist ticked). Skipped when the registry
+  // is unreadable (pre-GRANT window).
+  if (chases?.questionnaire) {
+    reqs.push({
+      id: `questionnaire-${contactId}`,
+      kind: "questionnaire",
+      title: "Fill in your questionnaire",
+      description: "We need a few details from you to progress your claim. It only takes a few minutes.",
+      icon: "assignment",
+      done: false,
+      action: "/dashboard",
+    });
+  }
+  if (chases?.extraLender) {
+    reqs.push({
+      id: `extra-lender-${contactId}`,
+      kind: "extra-lender",
+      title: "Tell us about other lenders",
+      description: "Tell us which other lenders you borrowed from so we can check whether you have further claims.",
+      icon: "playlist_add",
+      done: false,
+      action: "/dashboard",
+    });
+  }
+
+  // ── FOS referral (per claim — Phase 7.3 Slice C) ──
+  // Shown while the case carries an unsigned FOS retainer token; drops once the
+  // retainer is completed (per-token tracking check, token never cleared).
+  if (completedTokens) {
+    for (const k of casesRes.rows) {
+      if (!fosArmed(k, completedTokens)) continue;
+      if (mapStatus(k.status) === null) continue; // never surface a hidden claim
+      const lender = k.lender || k.lender_other || "your lender";
+      reqs.push({
+        id: `fos-${k.id}`,
+        kind: "fos-referral",
+        title: `Approve your Ombudsman referral — ${lender}`,
+        description: `The lender's response wasn't good enough. Review and approve referring your ${lender} claim to the Financial Ombudsman Service.`,
+        icon: "gavel",
+        done: false,
+        lenderName: lender,
+        claimId: String(k.id),
+        action: `/claims/${encodeURIComponent(k.case_number || String(k.id))}`,
+      });
+    }
+  }
+
   // ── Signature / Letter of Authority (per claim — Phase 7.3 Slice B) ──
   // Shown while the case carries a Resend-LOA token that hasn't been signed
   // (per-token tracking check — the token itself is never cleared). Once signed
   // the ask DROPS rather than flipping to done: the token lives forever, so a
   // done-card would too. Skipped when tracking is unreadable.
-  if (completedResignTokens) {
+  if (completedTokens) {
     for (const k of casesRes.rows) {
-      if (!signatureArmed(k, completedResignTokens)) continue;
+      if (!signatureArmed(k, completedTokens)) continue;
       if (mapStatus(k.status) === null) continue; // never surface a hidden claim
       const lender = k.lender || k.lender_other || "your lender";
       reqs.push({

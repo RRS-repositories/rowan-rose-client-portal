@@ -3,8 +3,18 @@ import { Link } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/useToast";
 import { openSigningPage } from "@/api/signature";
+import { getQuestionnaireLink, getExtraLenderLink, getFosLink, openAskPage } from "@/api/asks";
 import { phaseOf } from "@/data/statusMap";
 import type { Claim, Requirement } from "@/data/types";
+
+/** Asks whose action opens the firm's secure form page in a new tab (V1 —
+ *  these flows stay on the firm's existing pages, not in-portal). */
+const EXTERNAL_ASKS: Record<string, { label: string; icon: string; open: (r: Requirement) => Promise<boolean> }> = {
+  signature: { label: "Sign now", icon: "stylus_note", open: (r) => (r.claimId ? openSigningPage(r.claimId) : Promise.resolve(false)) },
+  questionnaire: { label: "Start", icon: "assignment", open: () => openAskPage(getQuestionnaireLink) },
+  "extra-lender": { label: "Choose", icon: "playlist_add", open: () => openAskPage(getExtraLenderLink) },
+  "fos-referral": { label: "Review", icon: "gavel", open: (r) => (r.claimId ? openAskPage(() => getFosLink(r.claimId!)) : Promise.resolve(false)) },
+};
 
 /** Claim-scoped to-do list. Mirrors the dashboard "What We Need" card —
  *  surfaces every outstanding requirement on each active claim. The offer-
@@ -60,8 +70,8 @@ export function ActionItems({ claim, requirements }: { claim: Claim; requirement
                 <p className="mt-0.5 font-body text-body-md text-on-surface-variant">{r.description}</p>
               </div>
             </div>
-            {r.kind === "signature" ? (
-              <SignNowButton requirement={r} />
+            {EXTERNAL_ASKS[r.kind] ? (
+              <ExternalAskButton requirement={r} ask={EXTERNAL_ASKS[r.kind]} />
             ) : (
               <Link
                 to={`${r.action}?highlight=${r.id}`}
@@ -79,21 +89,21 @@ export function ActionItems({ claim, requirements }: { claim: Claim; requirement
   );
 }
 
-/** Opens the firm's secure signing page for a Letter-of-Authority ask (V1 —
- *  signing itself stays on the firm's existing page, not in-portal). */
-function SignNowButton({ requirement }: { requirement: Requirement }) {
+/** Opens the firm's secure form page for an external ask (sign / questionnaire /
+ *  extra-lender / FOS). The flows stay on the firm's existing pages in V1. */
+function ExternalAskButton({ requirement, ask }: { requirement: Requirement; ask: (typeof EXTERNAL_ASKS)[string] }) {
   const { push } = useToast();
   const [opening, setOpening] = useState(false);
 
-  async function sign() {
-    if (!requirement.claimId || opening) return;
+  async function act() {
+    if (opening) return;
     setOpening(true);
-    const ok = await openSigningPage(requirement.claimId);
+    const ok = await ask.open(requirement);
     setOpening(false);
     if (!ok) {
       push({
-        title: "Couldn't open the signing page",
-        description: "Please try again in a moment, or contact us and we'll help.",
+        title: "Couldn't open that page",
+        description: "We may still be preparing it. Please try again shortly, or contact us and we'll help.",
         tone: "error",
       });
     }
@@ -102,13 +112,13 @@ function SignNowButton({ requirement }: { requirement: Requirement }) {
   return (
     <button
       type="button"
-      onClick={sign}
+      onClick={act}
       disabled={opening}
-      aria-label={`Sign — ${requirement.title}`}
+      aria-label={`${ask.label} — ${requirement.title}`}
       className="inline-flex min-h-[48px] flex-none items-center justify-center gap-2 rounded-lg bg-primary px-md font-button text-button text-on-primary skeuo-raise skeuo-primary-glow skeuo-press hover:opacity-95 disabled:opacity-60"
     >
-      <Icon name={opening ? "progress_activity" : "stylus_note"} size={20} className={opening ? "animate-spin" : undefined} />
-      Sign now
+      <Icon name={opening ? "progress_activity" : ask.icon} size={20} className={opening ? "animate-spin" : undefined} />
+      {ask.label}
     </button>
   );
 }
