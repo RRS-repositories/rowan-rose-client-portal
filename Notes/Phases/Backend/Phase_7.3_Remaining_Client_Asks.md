@@ -165,7 +165,10 @@ nothing. Awaiting Brad's end-to-end drill (Verify Outcome on case 227003).**
 Live: 4 portal functions, 6 `zz_portal_*` triggers (new: `zz_portal_notify_cases_resign`).
 Verified post-deploy: health up; test account shows the offer ask done (Brad's Slice A
 accept completed the full pipeline); no signature ask / resign-link 404 while not
-armed. Awaiting Brad's Resend-LOA drill on the test case.
+armed. **Brad ran the Resend-LOA drill 2026-08-05 — verified working end-to-end.**
+Drill also caught a stale-PWA-bundle gotcha (old bundle rendered a dead Upload
+button on the signature card): fixed in `75ad95a` — the app reloads once when a
+new deploy's service worker takes over and checks for updates on focus.
 
 **Slice B discovery (2026-08-05, read-only in CRM-Finalised — done BEFORE DDL):**
 
