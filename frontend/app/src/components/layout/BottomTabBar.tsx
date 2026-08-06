@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/cn";
@@ -16,8 +17,26 @@ import { useNotifications } from "@/context/NotificationContext";
 export function BottomTabBar() {
   const reduce = useReducedMotion();
   const { unreadCount } = useNotifications();
+
+  // Publish the bar's real height so full-height screens (chat) can end exactly
+  // above it. Its height isn't knowable up front — the safe-area inset differs
+  // per device and the user's font-size setting scales the labels — so anything
+  // hard-coded is either a gap or an overlap. Before paint, so nothing shifts.
+  const ref = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const publish = () =>
+      document.documentElement.style.setProperty("--rr-tabbar-h", `${el.offsetHeight}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <nav
+      ref={ref}
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-50 px-2 md:hidden"
     >

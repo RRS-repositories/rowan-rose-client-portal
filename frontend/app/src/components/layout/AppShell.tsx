@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           id="main"
           className={
             FULL_HEIGHT_ROUTE.test(pathname)
-              ? "h-dvh min-w-0 flex-1 overflow-hidden pb-[120px] md:pb-0"
+              ? "h-dvh min-w-0 flex-1 overflow-hidden pb-[var(--rr-tabbar-h,120px)] md:pb-0"
               : "min-w-0 flex-1 overflow-x-clip pb-[120px] md:overflow-x-visible md:pb-0"
           }
         >
