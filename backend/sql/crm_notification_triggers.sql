@@ -205,38 +205,31 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- Questionnaire / extra-lender asks (Phase 7.3 Slice C): fired from the CRM's
--- chase-workflow registry — arming either chase inserts a workflow_triggers row
--- (staff manual or Nova). One function, per-type wording. Contact-level asks
--- (claim_id NULL); the requirement card clears when the workflow completes.
-CREATE OR REPLACE FUNCTION portal.notify_chase_workflow() RETURNS trigger
+-- Questionnaire / extra-lender asks (Phase 7.3 Slice C, revised 2026-08-06):
+-- originally fired on chase-workflow ARMING, but the first chase action runs
+-- ~48h later and the form token is only minted at send time — the ask sat with
+-- nothing to open. Both now fire on their READY signal, like every other ask:
+-- the questionnaire when its token row appears, the extra-lender when the first
+-- send's tracking row appears. (portal.notify_chase_workflow is retired; the
+-- orphaned function can be dropped by portal_app at leisure.)
+CREATE OR REPLACE FUNCTION portal.notify_questionnaire_ready() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = portal, public, pg_temp
 AS $$
-DECLARE
-  wf text;
-  n_kind text; n_title text; n_body text;
 BEGIN
   IF current_setting('portal.suppress_notifications', true) = 'on' THEN
     RETURN NEW;
   END IF;
-  IF NEW.client_id IS NULL THEN
-    RETURN NEW;
-  END IF;
-  wf := lower(replace(COALESCE(NEW.workflow_type, ''), '_', ' '));
-  IF wf = 'questionnaire chase' THEN
-    n_kind  := 'questionnaire_request';
-    n_title := 'Please fill in your questionnaire';
-    n_body  := 'We need a few details from you to progress your claim. It only takes a few minutes.';
-  ELSIF wf = 'extra lender chase' THEN
-    n_kind  := 'extra_lender_request';
-    n_title := 'Do you have claims with other lenders?';
-    n_body  := 'Tell us which other lenders you borrowed from so we can check whether you have further claims.';
-  ELSE
+  IF NEW.contact_id IS NULL OR COALESCE(NEW.submitted, false) THEN
     RETURN NEW;
   END IF;
 
   INSERT INTO portal.notifications (contact_id, claim_id, kind, title, body, link)
-  VALUES (NEW.client_id, NULL, n_kind, n_title, n_body, '/dashboard')
+  VALUES (
+    NEW.contact_id, NULL, 'questionnaire_request',
+    'Please fill in your questionnaire',
+    'We need a few details from you to progress your claim. It only takes a few minutes.',
+    '/dashboard'
+  )
   ON CONFLICT (contact_id, COALESCE(claim_id, 0), kind) WHERE read_at IS NULL
   DO UPDATE SET created_at = now(),
                 title = EXCLUDED.title,
@@ -244,7 +237,37 @@ BEGIN
                 link  = EXCLUDED.link;
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
-  RAISE WARNING 'portal.notify_chase_workflow: failed for contact %: %', NEW.client_id, SQLERRM;
+  RAISE WARNING 'portal.notify_questionnaire_ready: failed for contact %: %', NEW.contact_id, SQLERRM;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION portal.notify_extra_lender_ready() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = portal, public, pg_temp
+AS $$
+BEGIN
+  IF current_setting('portal.suppress_notifications', true) = 'on' THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.client_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO portal.notifications (contact_id, claim_id, kind, title, body, link)
+  VALUES (
+    NEW.client_id, NULL, 'extra_lender_request',
+    'Do you have claims with other lenders?',
+    'Tell us which other lenders you borrowed from so we can check whether you have further claims.',
+    '/dashboard'
+  )
+  ON CONFLICT (contact_id, COALESCE(claim_id, 0), kind) WHERE read_at IS NULL
+  DO UPDATE SET created_at = now(),
+                title = EXCLUDED.title,
+                body  = EXCLUDED.body,
+                link  = EXCLUDED.link;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'portal.notify_extra_lender_ready: failed for contact %: %', NEW.client_id, SQLERRM;
   RETURN NEW;
 END;
 $$;
@@ -310,13 +333,23 @@ GRANT SELECT ON public.client_communications_tracking TO portal_app, portal_ro;
 GRANT SELECT ON public.workflow_triggers TO portal_app, portal_ro;
 GRANT SELECT ON public.questionnaire_tokens TO portal_ro;
 
+-- Revised 2026-08-06: the workflow-arming trigger is retired (fired before the
+-- form existed) — the two ready-signal triggers below replace it.
 DROP TRIGGER IF EXISTS zz_portal_notify_workflow_chases ON public.workflow_triggers;
-CREATE TRIGGER zz_portal_notify_workflow_chases
-  AFTER INSERT ON public.workflow_triggers
+
+DROP TRIGGER IF EXISTS zz_portal_notify_questionnaire_ready ON public.questionnaire_tokens;
+CREATE TRIGGER zz_portal_notify_questionnaire_ready
+  AFTER INSERT ON public.questionnaire_tokens
   FOR EACH ROW
-  WHEN (NEW.workflow_type IN ('Questionnaire Chase', 'questionnaire_chase',
-                              'Extra Lender Chase', 'extra_lender_chase'))
-  EXECUTE FUNCTION portal.notify_chase_workflow();
+  WHEN (COALESCE(NEW.submitted, false) = false)
+  EXECUTE FUNCTION portal.notify_questionnaire_ready();
+
+DROP TRIGGER IF EXISTS zz_portal_notify_extra_lender_ready ON public.client_communications_tracking;
+CREATE TRIGGER zz_portal_notify_extra_lender_ready
+  AFTER INSERT ON public.client_communications_tracking
+  FOR EACH ROW
+  WHEN (NEW.type = 'extra_lender')
+  EXECUTE FUNCTION portal.notify_extra_lender_ready();
 
 DROP TRIGGER IF EXISTS zz_portal_notify_cases_fos ON public.cases;
 CREATE TRIGGER zz_portal_notify_cases_fos

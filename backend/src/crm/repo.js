@@ -560,7 +560,7 @@ async function getPortalUploads(contactId) {
  * and never a firm-generated document.
  */
 export async function getRequirementsByContactId(contactId) {
-  const [contactRes, casesRes, uploads, acceptedOffers, completedTokens, chases] = await Promise.all([
+  const [contactRes, casesRes, uploads, acceptedOffers, completedTokens, chases, questionnaireLink, extraLenderLink] = await Promise.all([
     crmQuery(
       `SELECT id_chase_active, id_chase_started_at, identity_status, identity_confirmed_at
          FROM public.contacts WHERE id = $1 LIMIT 1`,
@@ -576,6 +576,8 @@ export async function getRequirementsByContactId(contactId) {
     getAcceptedOffers(contactId),
     getCompletedTrackingTokens(contactId),
     getActiveChaseWorkflows(contactId),
+    getQuestionnaireLink(contactId),
+    getExtraLenderLink(contactId),
   ]);
   const contact = contactRes.rows[0];
   const reqs = [];
@@ -633,10 +635,11 @@ export async function getRequirementsByContactId(contactId) {
   }
 
   // ── Questionnaire + extra-lender (contact-level — Phase 7.3 Slice C) ──
-  // Driven by the CRM's live chase workflows; the ask drops when the workflow
-  // completes (form submitted / checklist ticked). Skipped when the registry
-  // is unreadable (pre-GRANT window).
-  if (chases?.questionnaire) {
+  // Shown only while the chase workflow is live AND the form actually exists
+  // (the worker mints the token / sends the first email up to ~48h after
+  // arming — never show a card the client can't act on). The ask drops when
+  // the workflow completes (form submitted / checklist ticked).
+  if (chases?.questionnaire && questionnaireLink) {
     reqs.push({
       id: `questionnaire-${contactId}`,
       kind: "questionnaire",
@@ -647,7 +650,7 @@ export async function getRequirementsByContactId(contactId) {
       action: "/dashboard",
     });
   }
-  if (chases?.extraLender) {
+  if (chases?.extraLender && extraLenderLink) {
     reqs.push({
       id: `extra-lender-${contactId}`,
       kind: "extra-lender",
