@@ -140,6 +140,25 @@ proven before anything else is built on it):
   loop races message bursts (handoff posts several at once) — collect events
   persistently.
 
+**⚠️ Assistant is OFF by default (Brad, 2026-08-06): human↔human chat first, bot
+later.** Gate: `CHAT_ASSISTANT_ENABLED=true` **and** `ANTHROPIC_API_KEY` set —
+both required. While off: conversations open straight into `human_queued` (so
+they land in the CS queue), the greeting comes from the claims team, `runAgent`
+is never invoked, and the UI drops the Sarah name, the AI ASSISTANT tag and the
+AI disclaimer. Clients never see a bot that isn't there. All Hermes code stays
+in place, dormant, for when Brad switches it on.
+
+**Connection bug found in Brad's first browser test (fixed, `b12f662`):** the
+client set `transports: ["websocket","polling"]`, which makes socket.io try
+WebSocket **only** — it does not fall back to polling on failure, so a client
+that can't open a WebSocket sits forever on "Reconnecting…". Now connects on
+polling (works everywhere) and upgrades when the network allows. Verified over
+the public HTTPS URL, not just localhost: connect → `conversation:opened`,
+status `human_queued`, `assistant: false`.
+
+**Security fix (`2377087`):** staff-API shared secret compared with
+`crypto.timingSafeEqual` instead of `!==` (which leaks length/prefix by timing).
+
 ## Verification
 
 Spec §10 Phase-1 subset on the live portal test account: greeting + claim
