@@ -85,10 +85,12 @@ export default function HermesChat() {
   return (
     <Page label="Chat">
       <MobileHeader variant="back" title="Chat" />
-      {/* Fills the shell top-to-bottom so the composer sits on the bottom edge
-          with no dead space, but stays a readable column rather than stretching
-          a message box across a 1900px screen. */}
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col px-margin-mobile py-sm md:px-lg">
+      {/* Height has to be explicit: <Page> doesn't constrain it, so h-full
+          collapses and the whole document scrolls — header, composer and all.
+          Same viewport calc the Messages page uses (mobile allows for the
+          header + bottom tab bar), which pins the header and composer and
+          leaves only the thread scrolling. */}
+      <div className="mx-auto flex h-[calc(100dvh-64px-120px)] w-full max-w-4xl flex-col px-margin-mobile py-sm md:h-[calc(100dvh-120px)] md:px-lg">
         {/* Claim context + talk-to-a-person */}
         <header className="flex flex-none items-center justify-between gap-sm border-b border-outline-variant/30 pb-sm">
           <div className="min-w-0">
