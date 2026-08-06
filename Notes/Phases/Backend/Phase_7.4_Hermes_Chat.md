@@ -61,8 +61,30 @@ push delivery for backgrounded apps.
 
 ## Build notes — what actually happened
 
-**Phase 1 code complete 2026-08-06 — ⏸ awaiting Brad's DDL + nginx approval
-(nothing applied, nothing deployed).**
+**Phase 1 APPLIED + DEPLOYED 2026-08-06 (Brad approved). ⚠️ `ANTHROPIC_API_KEY`
+still not set on the portal EC2 — until Brad adds it, every client message
+fails safe to a human handoff (by design) rather than getting a Sarah reply.
+That key is the last step before the Phase 1 exit test.**
+
+Live and verified on production:
+- Migration applied as `portal_app`: 4 `portal.chat_*` tables (all owned by
+  portal_app), `trg_chat_touch`, `portal.v_chat_communications` (view returns rows).
+- nginx: WebSocket upgrade + `$connection_upgrade` map (`/etc/nginx/conf.d/websocket.conf`)
+  + 120s read/send timeouts on `/portal-api/`. **Gotcha:** the first backup was written
+  to `sites-enabled/default.bak-*`, which nginx loads → "duplicate default server"
+  and a failed `nginx -t`. Backups now live in `/etc/nginx/backups/` — never leave
+  one in sites-enabled.
+- Backend restarted: log shows `✔ chat socket layer attached`; health up.
+  Non-secret env defaults added (`HERMES_MODEL`, `HERMES_MAX_TOKENS`,
+  `CHAT_RATE_LIMIT_PER_MIN`, `PORTAL_PUBLIC_URL`).
+- Socket.io handshake proxies correctly through nginx (200, `upgrades:["websocket"]`).
+- `GET /api/chat/conversations` returns `{conversations:[],unread:0}` for the test login.
+- **Ownership test passed on the live backend**: stray conversation id → FORBIDDEN;
+  invalid token rejected at the handshake. (Cross-account probe needs a second test
+  login — set `CHAT_TEST_EMAIL_B`.)
+- Greeting persisted correctly on first open: conversation 1 (contact 234852, status
+  `bot`), one `hermes` message — "Hi Ayush — I'm Sarah, the assistant for Fast Action
+  Claims…". Nothing client-side says "Hermes".
 
 - **Schema** (`backend/sql/chat.sql`, run once as `portal_app`): `portal.chat_conversations`
   / `chat_messages` / `chat_agent_runs` / `chat_attachments` + `chat_touch_conversation`
