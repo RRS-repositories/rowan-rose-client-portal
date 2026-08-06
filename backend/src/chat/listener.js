@@ -29,6 +29,39 @@ export function markEmitted(messageId) {
   setTimeout(() => recentlyEmitted.delete(id), 30_000).unref?.();
 }
 
+/** Publish a typing signal both processes can hear (portal ↔ CRM). */
+export async function notifyTyping(conversationId, contactId, from) {
+  await query("SELECT pg_notify('chat_typing', $1)", [
+    JSON.stringify({ conversation_id: conversationId, contact_id: contactId, from }),
+  ]);
+}
+
+async function handleTyping(io, payload) {
+  let parsed;
+  try {
+    parsed = JSON.parse(payload);
+  } catch {
+    return;
+  }
+  // Only the agent's typing needs relaying INTO the portal; the client's own
+  // keystrokes came from here in the first place.
+  if (parsed.from !== "agent") return;
+  let conversationId = parsed.conversation_id;
+  // The CRM knows the contact, not necessarily which thread is open.
+  if (!conversationId && parsed.contact_id) {
+    const { rows } = await query(
+      `SELECT id FROM chat_conversations
+        WHERE contact_id = $1 AND status <> 'resolved'
+        ORDER BY last_message_at DESC NULLS LAST LIMIT 1`,
+      [parsed.contact_id],
+    );
+    conversationId = rows[0]?.id;
+  }
+  if (conversationId) {
+    io.to(`conv:${conversationId}`).emit("agent:typing", { conversationId: String(conversationId) });
+  }
+}
+
 async function handleNotification(io, payload) {
   let parsed;
   try {
@@ -74,16 +107,20 @@ export function startListener(io) {
       if (!stopped) setTimeout(connect, RECONNECT_MS).unref?.();
     });
     client.on("notification", (msg) => {
-      if (msg.channel === "chat_message") {
-        void handleNotification(io, msg.payload).catch((e) =>
-          console.error("[chat] notify handling failed:", e.message),
+      const handler = msg.channel === "chat_message" ? handleNotification
+        : msg.channel === "chat_typing" ? handleTyping
+        : null;
+      if (handler) {
+        void handler(io, msg.payload).catch((e) =>
+          console.error(`[chat] ${msg.channel} handling failed:`, e.message),
         );
       }
     });
     try {
       await client.connect();
       await client.query("LISTEN chat_message");
-      console.log("✔ chat listener attached (LISTEN chat_message)");
+      await client.query("LISTEN chat_typing");
+      console.log("✔ chat listener attached (LISTEN chat_message, chat_typing)");
     } catch (err) {
       console.error("[chat] listener connect failed:", err.message);
       setTimeout(connect, RECONNECT_MS).unref?.();

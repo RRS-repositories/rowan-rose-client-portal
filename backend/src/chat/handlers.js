@@ -13,7 +13,7 @@ import {
   setConversationStatus,
 } from "./db.js";
 import { runAgent, handoff } from "./hermes/agent.js";
-import { markEmitted } from "./listener.js";
+import { markEmitted, notifyTyping } from "./listener.js";
 import { greeting } from "./hermes/prompt.js";
 import { crmEnabled, crmQuery } from "../crmdb.js";
 import { mapStatus } from "../crm/statusMap.js";
@@ -137,9 +137,14 @@ export function registerHandlers(io, socket) {
     }
   });
 
+  // Client is composing. Relayed to the CRM over Postgres NOTIFY so the agent
+  // sees the dots in the Communication tab — the CRM isn't in the socket room,
+  // and the DB is the one thing both processes share.
   socket.on("typing", async ({ conversationId } = {}) => {
     const conversation = await getOwnedConversation(conversationId, contactId).catch(() => null);
-    if (conversation) socket.to(room(conversation.id)).emit("typing", { conversationId: conversation.id });
+    if (!conversation) return;
+    socket.to(room(conversation.id)).emit("typing", { conversationId: conversation.id });
+    notifyTyping(conversation.id, contactId, "client").catch(() => {});
   });
 
   socket.on("messages:read", async ({ conversationId, upToMessageId } = {}) => {

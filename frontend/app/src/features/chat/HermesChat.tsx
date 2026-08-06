@@ -85,7 +85,10 @@ export default function HermesChat() {
   return (
     <Page label="Chat">
       <MobileHeader variant="back" title="Chat" />
-      <div className="mx-auto flex h-[calc(100dvh-140px)] w-full max-w-3xl flex-col px-margin-mobile py-sm md:px-lg">
+      {/* Fill the shell: the thread takes the height that's actually there
+          rather than a guessed offset, and the composer sits on the bottom
+          edge instead of floating with dead space under it. */}
+      <div className="flex h-full min-h-0 w-full flex-col px-margin-mobile py-sm md:px-lg">
         {/* Claim context + talk-to-a-person */}
         <header className="flex flex-none items-center justify-between gap-sm border-b border-outline-variant/30 pb-sm">
           <div className="min-w-0">
@@ -160,26 +163,13 @@ export default function HermesChat() {
         )}
 
         {/* Thread */}
-        <div ref={scrollRef} className="flex-1 space-y-sm overflow-y-auto py-md">
+        <div ref={scrollRef} className="min-h-0 flex-1 space-y-sm overflow-y-auto py-md">
           {!chat.conversation ? (
             <div className="space-y-sm"><Skeleton className="h-16 w-3/4 rounded-xl" /><Skeleton className="h-12 w-1/2 rounded-xl" /></div>
           ) : (
             chat.messages.map((m) => <Bubble key={m.id} message={m} />)
           )}
-          {chat.typing && (
-            <p className="flex items-center gap-2 font-body text-label text-on-surface-variant" aria-live="polite">
-              <span className="flex gap-1" aria-hidden>
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="h-2 w-2 animate-pulse rounded-full bg-on-surface-variant/60"
-                    style={{ animationDelay: `${i * 180}ms` }}
-                  />
-                ))}
-              </span>
-              {ASSISTANT_DISPLAY_NAME} is typing…
-            </p>
-          )}
+          {chat.typing && <TypingBubble who={chat.assistant ? ASSISTANT_DISPLAY_NAME : "Your claims team"} />}
         </div>
 
         {/* Composer */}
@@ -192,7 +182,7 @@ export default function HermesChat() {
           <div className="flex items-end gap-sm">
             <textarea
               value={draft}
-              onChange={(e) => setDraft(e.target.value.slice(0, 2000))}
+              onChange={(e) => { setDraft(e.target.value.slice(0, 2000)); chat.notifyTyping(); }}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
               rows={1}
               placeholder={chat.assistant ? `Ask ${ASSISTANT_DISPLAY_NAME} about your claim…` : "Type your message…"}
@@ -209,6 +199,29 @@ export default function HermesChat() {
         </div>
       </div>
     </Page>
+  );
+}
+
+/** Classic three-dot typing indicator, rendered as a bubble in the thread so it
+ *  reads as "someone is composing a message" rather than a status line. The
+ *  lift is 4px on a smooth ease — the chat idiom people recognise, without the
+ *  springy overshoot of a stock bounce. Respects reduced-motion. */
+function TypingBubble({ who }: { who: string }) {
+  return (
+    <div className="flex justify-start" aria-live="polite">
+      <div className="skeuo-card max-w-[85%] rounded-2xl px-md py-sm">
+        <p className="mb-1 font-label-caps text-label-caps uppercase text-on-surface-variant">{who}</p>
+        <span className="flex items-center gap-1.5 py-1" aria-label={`${who} is typing`}>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="chat-typing-dot h-2 w-2 rounded-full bg-on-surface-variant/70"
+              style={{ animationDelay: `${i * 160}ms` }}
+            />
+          ))}
+        </span>
+      </div>
+    </div>
   );
 }
 

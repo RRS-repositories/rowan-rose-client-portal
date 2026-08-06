@@ -37,6 +37,8 @@ export interface ChatState {
   requestHandoff: () => void;
   openClaim: (claimId: string | null) => void;
   dismissError: () => void;
+  /** Tell the other side we're composing (throttled — safe to call per keystroke). */
+  notifyTyping: () => void;
 }
 
 export function useChatSocket(initialClaimId: string | null): ChatState {
@@ -48,6 +50,8 @@ export function useChatSocket(initialClaimId: string | null): ChatState {
   const [assistant, setAssistant] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
+  const agentTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSent = useRef(0);
   const claimRef = useRef<string | null>(initialClaimId);
   const conversationRef = useRef<ChatConversation | null>(null);
   const lastIdRef = useRef<number>(0);
@@ -135,7 +139,15 @@ export function useChatSocket(initialClaimId: string | null): ChatState {
       rememberLastId([{ id: String(messageId) } as ChatMessage]);
     });
 
+    // The assistant's own typing signal, and a human agent typing in the CRM.
+    // Both surface the same indicator; the agent one self-clears because the
+    // CRM sends a keystroke ping, not an explicit "stopped".
     socket.on("hermes:typing", ({ on }) => setTyping(Boolean(on)));
+    socket.on("agent:typing", () => {
+      setTyping(true);
+      if (agentTypingTimer.current) clearTimeout(agentTypingTimer.current);
+      agentTypingTimer.current = setTimeout(() => setTyping(false), 4000);
+    });
 
     socket.on("conversation:status", ({ status }) => {
       setConversation((c) => (c ? { ...c, status } : c));
@@ -186,9 +198,20 @@ export function useChatSocket(initialClaimId: string | null): ChatState {
     socketRef.current?.emit("conversation:open", { claimId });
   }, []);
 
+  // Throttled to one emit per 3s — a keystroke-per-packet would be silly, and
+  // the other side treats each ping as "still typing" for a few seconds anyway.
+  const notifyTyping = useCallback(() => {
+    const conv = conversationRef.current;
+    if (!socketRef.current || !conv) return;
+    const now = Date.now();
+    if (now - lastTypingSent.current < 3000) return;
+    lastTypingSent.current = now;
+    socketRef.current.emit("typing", { conversationId: conv.id });
+  }, []);
+
   return {
     connected, conversation, messages, typing, error, assistant,
-    send, requestHandoff, openClaim,
+    send, requestHandoff, openClaim, notifyTyping,
     dismissError: () => setError(null),
   };
 }

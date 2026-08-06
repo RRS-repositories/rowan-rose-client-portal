@@ -160,3 +160,16 @@
   .vfd, .vfd *, .vfd *::before, .vfd *::after { transition: none !important; }
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* ── Chat typing indicator ────────────────────────────────────────────────
+   Three dots that lift in sequence — the chat idiom everyone recognises.
+   A 4px lift on a smooth ease: enough to read as "typing", without the
+   springy overshoot of a stock bounce. The reduced-motion block above
+   already flattens this to a single frame. */
+@keyframes chat-typing-lift {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.55; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+.chat-typing-dot {
+  animation: chat-typing-lift 1.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
