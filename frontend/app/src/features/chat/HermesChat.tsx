@@ -85,10 +85,10 @@ export default function HermesChat() {
   return (
     <Page label="Chat">
       <MobileHeader variant="back" title="Chat" />
-      {/* Fill the shell: the thread takes the height that's actually there
-          rather than a guessed offset, and the composer sits on the bottom
-          edge instead of floating with dead space under it. */}
-      <div className="flex h-full min-h-0 w-full flex-col px-margin-mobile py-sm md:px-lg">
+      {/* Fills the shell top-to-bottom so the composer sits on the bottom edge
+          with no dead space, but stays a readable column rather than stretching
+          a message box across a 1900px screen. */}
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col px-margin-mobile py-sm md:px-lg">
         {/* Claim context + talk-to-a-person */}
         <header className="flex flex-none items-center justify-between gap-sm border-b border-outline-variant/30 pb-sm">
           <div className="min-w-0">
@@ -150,11 +150,18 @@ export default function HermesChat() {
           </div>
         </header>
 
-        {!chat.connected && (
+        {chat.sessionExpired ? (
+          <div role="alert" className="mt-sm flex flex-none flex-wrap items-center justify-between gap-sm rounded-lg bg-error-container/60 px-sm py-2">
+            <p className="font-body text-label text-on-error-container">
+              You've been signed out for security. Log in again to carry on chatting.
+            </p>
+            <Button size="md" onClick={() => navigate("/login")}>Log in</Button>
+          </div>
+        ) : !chat.connected ? (
           <p role="status" className="mt-sm flex flex-none items-center gap-2 rounded-lg bg-surface-container-high px-sm py-2 font-body text-label text-on-surface-variant">
             <Icon name="wifi_off" size={16} /> Reconnecting…
           </p>
-        )}
+        ) : null}
         {chat.error && (
           <p role="alert" className="mt-sm flex flex-none items-center justify-between gap-2 rounded-lg bg-error-container/60 px-sm py-2 font-body text-label text-on-error-container">
             {chat.error}
@@ -165,7 +172,11 @@ export default function HermesChat() {
         {/* Thread */}
         <div ref={scrollRef} className="min-h-0 flex-1 space-y-sm overflow-y-auto py-md">
           {!chat.conversation ? (
-            <div className="space-y-sm"><Skeleton className="h-16 w-3/4 rounded-xl" /><Skeleton className="h-12 w-1/2 rounded-xl" /></div>
+            // Skeletons imply "loading". Once the session is gone, nothing is
+            // loading — don't leave shimmering placeholders on screen forever.
+            chat.sessionExpired ? null : (
+              <div className="space-y-sm"><Skeleton className="h-16 w-3/4 rounded-xl" /><Skeleton className="h-12 w-1/2 rounded-xl" /></div>
+            )
           ) : (
             chat.messages.map((m) => <Bubble key={m.id} message={m} />)
           )}
@@ -187,9 +198,10 @@ export default function HermesChat() {
               rows={1}
               placeholder={chat.assistant ? `Ask ${ASSISTANT_DISPLAY_NAME} about your claim…` : "Type your message…"}
               aria-label="Your message"
-              className="skeuo-recessed min-h-[52px] flex-1 resize-none rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-sm font-body text-body-lg text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              disabled={chat.sessionExpired}
+              className="skeuo-recessed min-h-[52px] flex-1 resize-none rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-sm font-body text-body-lg text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
             />
-            <Button onClick={submit} disabled={!draft.trim()} leadingIcon="send" size="lg">Send</Button>
+            <Button onClick={submit} disabled={!draft.trim() || chat.sessionExpired} leadingIcon="send" size="lg">Send</Button>
           </div>
           <p className="mt-1.5 font-body text-label text-on-surface-variant">
             {chat.assistant

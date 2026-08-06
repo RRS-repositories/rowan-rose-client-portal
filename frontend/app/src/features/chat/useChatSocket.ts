@@ -33,6 +33,8 @@ export interface ChatState {
   error: string | null;
   /** Server-side switch: is the AI assistant handling this chat at all? */
   assistant: boolean;
+  /** The login has expired — reconnecting will never succeed until they sign in. */
+  sessionExpired: boolean;
   send: (body: string) => void;
   requestHandoff: () => void;
   openClaim: (claimId: string | null) => void;
@@ -48,6 +50,7 @@ export function useChatSocket(initialClaimId: string | null): ChatState {
   const [typing, setTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [assistant, setAssistant] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
   const agentTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -97,7 +100,17 @@ export function useChatSocket(initialClaimId: string | null): ChatState {
       }
     });
     socket.on("disconnect", () => { setConnected(false); setTyping(false); });
-    socket.on("connect_error", () => setConnected(false));
+
+    // An expired session is NOT a network problem. Retrying it forever leaves
+    // the client staring at "Reconnecting…" that will never succeed — say so
+    // and stop, so they can log in again.
+    socket.on("connect_error", (err) => {
+      setConnected(false);
+      if (/unauthoris|unauthoriz|auth/i.test(err?.message || "")) {
+        setSessionExpired(true);
+        socket.close();
+      }
+    });
 
     socket.on("conversation:opened", ({ conversation: conv, messages: list, assistant: hasAssistant }) => {
       conversationRef.current = conv;
@@ -210,7 +223,7 @@ export function useChatSocket(initialClaimId: string | null): ChatState {
   }, []);
 
   return {
-    connected, conversation, messages, typing, error, assistant,
+    connected, conversation, messages, typing, error, assistant, sessionExpired,
     send, requestHandoff, openClaim, notifyTyping,
     dismissError: () => setError(null),
   };
