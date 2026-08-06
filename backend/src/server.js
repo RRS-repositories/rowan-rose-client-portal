@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { authRouter } from "./routes/auth.js";
 import { clientRouter } from "./routes/client.js";
-import { chatRouter } from "./chat/routes.js";
+import { chatRouter, chatStaffRouter } from "./chat/routes.js";
 import { initChat } from "./chat/index.js";
 import { pool } from "./db.js";
 
@@ -25,6 +25,9 @@ app.get("/health", async (_req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/client", clientRouter);
+// Staff/CRM side (shared-secret auth) must mount before the client router,
+// which requires a client JWT.
+app.use("/api/chat/staff", chatStaffRouter);
 app.use("/api/chat", chatRouter);
 
 // Plain-English JSON errors (never leak stack traces to the client).

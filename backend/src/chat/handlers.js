@@ -13,6 +13,7 @@ import {
   setConversationStatus,
 } from "./db.js";
 import { runAgent, handoff } from "./hermes/agent.js";
+import { markEmitted } from "./listener.js";
 import { greeting } from "./hermes/prompt.js";
 import { crmEnabled, crmQuery } from "../crmdb.js";
 import { mapStatus } from "../crm/statusMap.js";
@@ -96,6 +97,7 @@ export function registerHandlers(io, socket) {
       // like a 4-second send.
       socket.emit("message:ack", { clientMsgUuid, messageId: row.id, createdAt: row.created_at });
       if (!isNew) return; // retry of an already-stored message: never re-run the agent
+      markEmitted(row.id); // the NOTIFY bridge skips what we broadcast here
       io.to(room(conversation.id)).emit("message:new", row);
 
       if (conversation.status === "bot") {

@@ -14,6 +14,7 @@ import { Server } from "socket.io";
 import { socketAuth } from "./socketAuth.js";
 import { registerHandlers } from "./handlers.js";
 import { startRecovery } from "./recovery.js";
+import { startListener } from "./listener.js";
 
 export function initChat(httpServer, corsOrigins) {
   if (process.env.NODE_APP_INSTANCE && Number(process.env.NODE_APP_INSTANCE) > 0) {
@@ -28,6 +29,8 @@ export function initChat(httpServer, corsOrigins) {
   io.use(socketAuth);
   io.on("connection", (socket) => registerHandlers(io, socket));
   startRecovery(io);
+  // Delivers messages written by ANY writer (CRM, staff API, raw SQL).
+  startListener(io);
 
   console.log("✔ chat socket layer attached");
   return io;
