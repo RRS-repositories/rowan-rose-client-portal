@@ -562,7 +562,8 @@ async function getPortalUploads(contactId) {
 export async function getRequirementsByContactId(contactId) {
   const [contactRes, casesRes, uploads, acceptedOffers, completedTokens, chases, questionnaireLink, extraLenderLink] = await Promise.all([
     crmQuery(
-      `SELECT id_chase_active, id_chase_started_at, identity_status, identity_confirmed_at
+      `SELECT id_chase_active, id_chase_started_at, identity_status, identity_confirmed_at,
+              document_checklist
          FROM public.contacts WHERE id = $1 LIMIT 1`,
       [contactId],
     ),
@@ -637,9 +638,12 @@ export async function getRequirementsByContactId(contactId) {
   // ── Questionnaire + extra-lender (contact-level — Phase 7.3 Slice C) ──
   // Shown only while the chase workflow is live AND the form actually exists
   // (the worker mints the token / sends the first email up to ~48h after
-  // arming — never show a card the client can't act on). The ask drops when
-  // the workflow completes (form submitted / checklist ticked).
-  if (chases?.questionnaire && questionnaireLink) {
+  // arming — never show a card the client can't act on). Done comes from the
+  // CRM's own checklist tick — the submit paths set document_checklist and the
+  // worker completes the chase from it LATER (its sweep can lag), so the
+  // checklist is the immediate authoritative signal, not the workflow status.
+  const checklist = (contact && typeof contact.document_checklist === "object" && contact.document_checklist) || {};
+  if (chases?.questionnaire && questionnaireLink && checklist.questionnaire !== true) {
     reqs.push({
       id: `questionnaire-${contactId}`,
       kind: "questionnaire",
@@ -650,7 +654,7 @@ export async function getRequirementsByContactId(contactId) {
       action: "/dashboard",
     });
   }
-  if (chases?.extraLender && extraLenderLink) {
+  if (chases?.extraLender && extraLenderLink && checklist.extraLender !== true) {
     reqs.push({
       id: `extra-lender-${contactId}`,
       kind: "extra-lender",
