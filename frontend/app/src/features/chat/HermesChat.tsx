@@ -51,9 +51,11 @@ export default function HermesChat() {
   // First run: which claim are we talking about?
   if (!claimId && claims.length > 0) {
     return (
-      <Page label="Chat">
+      <Page label="Chat" className="flex h-full min-h-0 flex-col">
         <MobileHeader variant="title" title="Chat" />
-        <div className="mx-auto w-full max-w-3xl px-margin-mobile py-md md:px-lg md:py-lg">
+        {/* The shell pins this route to the viewport, so the picker scrolls
+            itself rather than the document. */}
+        <div className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto px-margin-mobile py-md md:px-lg md:py-lg">
           <h1 className="font-display-lg-mobile text-display-lg-mobile text-on-surface md:text-display-lg">
             Chat to us
           </h1>
@@ -83,14 +85,12 @@ export default function HermesChat() {
   }
 
   return (
-    <Page label="Chat">
+    <Page label="Chat" className="flex h-full min-h-0 flex-col">
       <MobileHeader variant="back" title="Chat" />
-      {/* Height has to be explicit: <Page> doesn't constrain it, so h-full
-          collapses and the whole document scrolls — header, composer and all.
-          Same viewport calc the Messages page uses (mobile allows for the
-          header + bottom tab bar), which pins the header and composer and
-          leaves only the thread scrolling. */}
-      <div className="mx-auto flex h-[calc(100dvh-64px-120px)] w-full max-w-4xl flex-col px-margin-mobile py-sm md:h-[calc(100dvh-120px)] md:px-lg">
+      {/* Takes whatever height is left under the mobile header — no pixel
+          guesses, so there's no dead band under the composer. Claim header and
+          composer are flex-none; the thread is the only thing that scrolls. */}
+      <div className="mx-auto flex w-full min-h-0 max-w-4xl flex-1 flex-col px-margin-mobile py-sm md:px-lg">
         {/* Claim context + talk-to-a-person */}
         <header className="flex flex-none items-center justify-between gap-sm border-b border-outline-variant/30 pb-sm">
           <div className="min-w-0">

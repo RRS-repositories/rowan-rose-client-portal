@@ -19,6 +19,17 @@ const BARE_ROUTES = new Set([
 ]);
 
 /**
+ * Routes that must fill the viewport exactly rather than grow with their
+ * content — chat, where the composer stays put and only the thread scrolls.
+ * <main> normally has no height at all, so a page asking for h-full got
+ * nothing and the whole document scrolled instead. Giving main a real height
+ * here is the single source of it: border-box means the mobile bottom-tab
+ * padding is subtracted for free, so the page inside just says h-full and
+ * never hard-codes a pixel guess.
+ */
+const FULL_HEIGHT_ROUTE = /^\/chat(\/|$)/;
+
+/**
  * App frame. Desktop = left folder-tab sidebar + wide content; mobile = each
  * screen's own MobileHeader + a bottom tab bar. Splash and auth routes are bare.
  */
@@ -73,8 +84,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             slides with translateX, which would otherwise flash a horizontal
             scrollbar mid-transition. On desktop the transition is vertical, so we
             must NOT clip — clipping here makes an ancestor of the right-column
-            `position: sticky` cards, which breaks their pinning. */}
-        <main id="main" className="min-w-0 flex-1 overflow-x-clip pb-[120px] md:overflow-x-visible md:pb-0">
+            `position: sticky` cards, which breaks their pinning. Full-height
+            routes take the other branch: fixed to the viewport and clipped on
+            both axes, so scrolling happens inside the page, not on the document.
+            (They have no sticky right column, so the caveat above doesn't bite.) */}
+        <main
+          id="main"
+          className={
+            FULL_HEIGHT_ROUTE.test(pathname)
+              ? "h-dvh min-w-0 flex-1 overflow-hidden pb-[120px] md:pb-0"
+              : "min-w-0 flex-1 overflow-x-clip pb-[120px] md:overflow-x-visible md:pb-0"
+          }
+        >
           {children}
         </main>
       </div>

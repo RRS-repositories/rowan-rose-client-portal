@@ -382,13 +382,13 @@ function MockChat() {
   }
 
   return (
-    <Page label="Messages">
+    <Page label="Messages" className="flex h-full min-h-0 flex-col">
       {/* One unified chat screen on every viewport — the title stays generic; the
           active claim and the "switch claim" control live inside the chat card. */}
       <MobileHeader variant="title" title="Messages" />
 
       {/* Desktop heading */}
-      <div className="hidden px-lg pt-md md:block">
+      <div className="hidden flex-none px-lg pt-md md:block">
         <h1 className="font-display-lg-mobile text-display-lg text-on-surface">Messages</h1>
         <p className="mt-1 font-body-lg text-body-lg text-on-surface-variant">
           Chat with your claims team. Pick a claim to see its messages.
@@ -397,10 +397,10 @@ function MockChat() {
 
       <div
         className={
-          // Height: viewport minus mobile header (64px) + bottom tab bar (120px from AppShell)
-          // on mobile; minus the desktop heading on desktop.
+          // Fills what's left under the header/heading — the shell pins this
+          // route to the viewport, so no hard-coded chrome heights here.
           "px-margin-mobile pt-3 md:px-lg md:pb-lg md:pt-md " +
-          "h-[calc(100dvh-64px-120px)] md:h-[calc(100dvh-160px)]"
+          "min-h-0 flex-1"
         }
       >
         {/* Single column, centred on wide screens like a bank chat portal. */}
