@@ -4,6 +4,7 @@
  * first paint and the unread badge. Read-only — there is deliberately no export
  * endpoint (spec §8.8).
  */
+import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { listConversations, getOwnedConversation, getMessages, insertMessage, setConversationStatus } from "./db.js";
@@ -14,19 +15,29 @@ import { query } from "../db.js";
  *
  * This is the seam the CRM Customer Service Hub will use in Phase 3: post a
  * reply into a conversation as a human agent. Auth is a shared secret in
- * CHAT_AGENT_TOKEN, checked in constant-ish time; without it set, the route is
- * disabled entirely rather than open.
+ * CHAT_AGENT_TOKEN; without it set, the route is disabled entirely rather than
+ * left open.
  *
  * Delivery is via the NOTIFY trigger, so a reply written straight into
  * portal.chat_messages by the CRM reaches the client the same way this does.
  */
 export const chatStaffRouter = Router();
 
+/** Constant-time compare. A plain `!==` returns early on the first differing
+ *  byte, which leaks the secret's length and prefix to a timing attacker. */
+function tokenMatches(given, expected) {
+  const a = Buffer.from(typeof given === "string" ? given : "", "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return false; // timingSafeEqual throws on length mismatch
+  return timingSafeEqual(a, b);
+}
+
 chatStaffRouter.use((req, res, next) => {
   const expected = process.env.CHAT_AGENT_TOKEN;
   if (!expected) return res.status(503).json({ message: "Staff chat API is not enabled." });
-  const given = req.headers["x-agent-token"];
-  if (given !== expected) return res.status(401).json({ message: "Unauthorised." });
+  if (!tokenMatches(req.headers["x-agent-token"], expected)) {
+    return res.status(401).json({ message: "Unauthorised." });
+  }
   next();
 });
 
