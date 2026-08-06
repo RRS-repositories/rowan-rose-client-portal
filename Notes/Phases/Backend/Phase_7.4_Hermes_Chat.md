@@ -121,6 +121,25 @@ Live and verified on production:
 - Deps added: `socket.io`, `@anthropic-ai/sdk` (backend), `socket.io-client` (frontend +
   backend dev, for the test).
 
+**Two-way delivery added + verified 2026-08-06** (Brad wanted the CRM↔portal pipe
+proven before anything else is built on it):
+- Gap found: the portal only broadcast its OWN inserts, so a CRM-side write would
+  have sat in the table until the client refreshed. Fixed with `sql/chat_notify.sql`
+  (NOTIFY trigger on `portal.chat_messages`, applied) + `src/chat/listener.js`
+  (LISTEN → socket broadcast, with de-dupe against the portal's own emits). The
+  table is now the API, same as `portal.notifications`.
+- Phase 3 seam shipped early: `/api/chat/staff/*` (queue, transcript, reply),
+  shared-secret auth via `CHAT_AGENT_TOKEN`; **disabled entirely when unset**.
+  A reply claims the conversation as `human_active`, which keeps Sarah silent.
+- `tools/agent-console.mjs` — terminal staff chat for the two-person test.
+- **Loop test passed on production:** client sent over the socket → staff row
+  INSERTed directly into the table with no portal API involved → client received it
+  live as `sender_type: agent`. Test conversation 1 left `resolved` so Brad's manual
+  test starts a fresh thread.
+- Test-harness gotcha for future work: a one-shot `socket.once('message:new')` in a
+  loop races message bursts (handoff posts several at once) — collect events
+  persistently.
+
 ## Verification
 
 Spec §10 Phase-1 subset on the live portal test account: greeting + claim
