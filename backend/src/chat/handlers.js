@@ -22,6 +22,15 @@ const MAX_BODY = 2000;
 const RATE_LIMIT = Number(process.env.CHAT_RATE_LIMIT_PER_MIN || 10);
 const room = (id) => `conv:${id}`;
 
+/**
+ * The AI assistant is OFF unless explicitly switched on (Brad, 2026-08-06:
+ * human↔human chat first, the bot comes later). When off, conversations open
+ * straight into the human queue, the greeting is from the claims team, and the
+ * agent is never invoked — the client never sees Sarah at all.
+ */
+const assistantEnabled = () =>
+  process.env.CHAT_ASSISTANT_ENABLED === "true" && Boolean(process.env.ANTHROPIC_API_KEY);
+
 const fail = (socket, code, message, conversationId) =>
   socket.emit("chat:error", { code, message, conversationId });
 
@@ -45,18 +54,31 @@ export function registerHandlers(io, socket) {
       if (!(await ownsClaim(contactId, id))) {
         return fail(socket, "FORBIDDEN", "That claim isn't available.");
       }
-      const conversation = await findOrCreateConversation(contactId, id);
+      let conversation = await findOrCreateConversation(contactId, id);
       socket.join(room(conversation.id));
+
+      const withAssistant = assistantEnabled();
+      // Assistant off → the thread belongs to the team from the start, so it
+      // shows up in the CS queue and nothing ever routes to the agent.
+      if (!withAssistant && conversation.status === "bot") {
+        conversation = (await setConversationStatus(conversation.id, "human_queued", {
+          handoffReason: "assistant_disabled",
+        })) || conversation;
+      }
 
       let messages = await getMessages(conversation.id, { limit: 50 });
       // Server-generated greeting so the thread works the moment it opens.
       if (messages.length === 0) {
-        const first = await insertMessage(
-          conversation.id, "hermes", null, greeting(socket.data.firstName), {},
-        );
+        const first = withAssistant
+          ? await insertMessage(conversation.id, "hermes", null, greeting(socket.data.firstName), {})
+          : await insertMessage(
+              conversation.id, "system", null,
+              `Hi ${socket.data.firstName} — send us a message here and a member of your claims team will reply.`,
+              {},
+            );
         messages = [first];
       }
-      socket.emit("conversation:opened", { conversation, messages });
+      socket.emit("conversation:opened", { conversation, messages, assistant: withAssistant });
     } catch (err) {
       console.error("[chat] conversation:open failed:", err.message);
       fail(socket, "NOT_FOUND", "We couldn't open that conversation.");
@@ -100,7 +122,7 @@ export function registerHandlers(io, socket) {
       markEmitted(row.id); // the NOTIFY bridge skips what we broadcast here
       io.to(room(conversation.id)).emit("message:new", row);
 
-      if (conversation.status === "bot") {
+      if (conversation.status === "bot" && assistantEnabled()) {
         // Async, non-blocking: the ack is already out.
         void runAgent(io, {
           conversationId: conversation.id,

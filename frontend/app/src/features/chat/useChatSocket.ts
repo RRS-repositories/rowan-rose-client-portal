@@ -31,6 +31,8 @@ export interface ChatState {
   messages: ChatMessage[];
   typing: boolean;
   error: string | null;
+  /** Server-side switch: is the AI assistant handling this chat at all? */
+  assistant: boolean;
   send: (body: string) => void;
   requestHandoff: () => void;
   openClaim: (claimId: string | null) => void;
@@ -43,6 +45,7 @@ export function useChatSocket(initialClaimId: string | null): ChatState {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [assistant, setAssistant] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
   const claimRef = useRef<string | null>(initialClaimId);
@@ -60,7 +63,19 @@ export function useChatSocket(initialClaimId: string | null): ChatState {
     const token = getToken();
     if (!token) return;
     const { url, path, auth } = socketOptions(token);
-    const socket = io(url, { path, auth, transports: ["websocket", "polling"] });
+    // Transport order matters: forcing websocket-first means a client that
+    // can't open a WebSocket (corporate proxy, restrictive mobile network,
+    // any intermediary that doesn't pass the Upgrade) never connects at all —
+    // socket.io does not fall back to polling on its own. Connect on polling,
+    // which works everywhere, and let it upgrade to websocket when it can.
+    const socket = io(url, {
+      path,
+      auth,
+      transports: ["polling", "websocket"],
+      withCredentials: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelayMax: 10_000,
+    });
     socketRef.current = socket;
 
     const open = () => socket.emit("conversation:open", { claimId: claimRef.current });
@@ -80,10 +95,11 @@ export function useChatSocket(initialClaimId: string | null): ChatState {
     socket.on("disconnect", () => { setConnected(false); setTyping(false); });
     socket.on("connect_error", () => setConnected(false));
 
-    socket.on("conversation:opened", ({ conversation: conv, messages: list }) => {
+    socket.on("conversation:opened", ({ conversation: conv, messages: list, assistant: hasAssistant }) => {
       conversationRef.current = conv;
       setConversation(conv);
       setMessages(list);
+      setAssistant(Boolean(hasAssistant));
       rememberLastId(list);
     });
 
@@ -171,7 +187,7 @@ export function useChatSocket(initialClaimId: string | null): ChatState {
   }, []);
 
   return {
-    connected, conversation, messages, typing, error,
+    connected, conversation, messages, typing, error, assistant,
     send, requestHandoff, openClaim,
     dismissError: () => setError(null),
   };

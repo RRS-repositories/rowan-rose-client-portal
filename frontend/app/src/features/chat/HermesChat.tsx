@@ -96,10 +96,12 @@ export default function HermesChat() {
               <span className="grid h-5 w-5 place-items-center rounded-full bg-primary/15 text-primary">
                 <Icon name="support_agent" size={14} fill />
               </span>
-              {ASSISTANT_DISPLAY_NAME}
-              <span className="rounded-full bg-surface-container-high px-2 py-0.5 font-label-caps text-label-caps uppercase">
-                AI assistant
-              </span>
+              {chat.assistant ? ASSISTANT_DISPLAY_NAME : "Your claims team"}
+              {chat.assistant && (
+                <span className="rounded-full bg-surface-container-high px-2 py-0.5 font-label-caps text-label-caps uppercase">
+                  AI assistant
+                </span>
+              )}
             </p>
           </div>
           <div className="relative flex-none">
@@ -189,15 +191,16 @@ export default function HermesChat() {
               onChange={(e) => setDraft(e.target.value.slice(0, 2000))}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
               rows={1}
-              placeholder={`Ask ${ASSISTANT_DISPLAY_NAME} about your claim…`}
+              placeholder={chat.assistant ? `Ask ${ASSISTANT_DISPLAY_NAME} about your claim…` : "Type your message…"}
               aria-label="Your message"
               className="skeuo-recessed min-h-[52px] flex-1 resize-none rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-sm font-body text-body-lg text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
             <Button onClick={submit} disabled={!draft.trim()} leadingIcon="send" size="lg">Send</Button>
           </div>
           <p className="mt-1.5 font-body text-label text-on-surface-variant">
-            {ASSISTANT_DISPLAY_NAME} is an AI assistant. She can't give legal or financial advice — for anything about
-            settlement figures or advice, your claims team will always take over.
+            {chat.assistant
+              ? `${ASSISTANT_DISPLAY_NAME} is an AI assistant. She can't give legal or financial advice — for anything about settlement figures or advice, your claims team will always take over.`
+              : "Messages are answered by your claims team during office hours (Mon–Fri, 9am–5pm)."}
           </p>
         </div>
       </div>
