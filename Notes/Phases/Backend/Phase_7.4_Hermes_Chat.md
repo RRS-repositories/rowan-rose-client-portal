@@ -43,9 +43,13 @@ out of bounds hands off to the CS team — with every exchange audited.
 
 ## Decisions
 
-- **OTP login (Brad, 2026-08-06):** chat builds now; the OTP migration
-  (CHAT_SCHEMA Appendix A) ships as its own slice BEFORE chat opens to real
-  clients. Chat go-live is gated on it.
+- **OTP login (Brad, 2026-08-06): PARKED — not in scope now.** Chat is built and
+  tested on the test account with the existing email+DOB login. Brad's earlier
+  position was that OTP (CHAT_SCHEMA Appendix A) lands before chat opens to real
+  clients; that remains the standing recommendation from CHAT_ARCHITECTURE §11
+  (transcripts become the most sensitive data behind portal login), so re-raise
+  it when client rollout is discussed — do NOT treat it as a blocker for the
+  build or for test-account verification.
 - Call-us hours label defaults to Mon–Fri 9am–5pm until Brad corrects.
 - Retention + comms-tab UNION vs sub-tab: parked to Phase 3.
 
