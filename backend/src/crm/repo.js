@@ -458,27 +458,55 @@ const DOCTYPE_BY_CATEGORY = Object.fromEntries(
   Object.entries(CATEGORY_BY_DOCTYPE).map(([k, v]) => [v, k]),
 );
 
+/** Plain-English labels for completed portal/CRM actions (signing-tracking
+ *  rows flipped to Completed). Unknown types fall back to a humanised label so
+ *  future flows appear without portal changes. */
+const ACTION_RECEIPT_LABELS = {
+  offer_acceptance: (lender) => `Settlement offer accepted${lender ? ` — ${lender}` : ""}`,
+  resend_loa: () => "Letter of Authority signed",
+  fos_referral: (lender) => `Ombudsman referral approved${lender ? ` — ${lender}` : ""}`,
+  extra_lender: () => "Additional lenders form completed",
+  questionnaire: () => "Questionnaire completed",
+};
+const humanizeActionType = (t) => {
+  const s = String(t || "").replace(/_/g, " ").trim();
+  return `${s.charAt(0).toUpperCase()}${s.slice(1)} completed`;
+};
+
 /**
- * The client's RECEIPTS — only what they themselves sent via the portal
- * (documents rows tagged 'Portal'), never the firm's case files. Replaces the
- * old whole-S3-folder listing, which surfaced firm/lender documents and
- * presigned up to 300 files on every bootstrap. No download URLs: this list is
- * reassurance ("we've got it"), not file management.
+ * The client's RECEIPTS — what they themselves sent or signed via the portal:
+ * their portal uploads (documents rows tagged 'Portal') plus completed actions
+ * (offer accepted, LoA signed, …) from the signing-tracking table. Never the
+ * firm's case files. Replaces the old whole-S3-folder listing, which surfaced
+ * firm/lender documents and presigned up to 300 files on every bootstrap. No
+ * download URLs: this list is reassurance ("we've got it"), not file management.
  */
 export async function getDocumentsByContactId(contact) {
   if (!contact) return [];
-  const { rows } = await crmQuery(
-    `SELECT id, name, category, lender, file_size_bytes, created_at
-       FROM public.documents
-      WHERE contact_id = $1
-        AND tags && ARRAY['Portal']::text[]
-        AND COALESCE(is_deleted, false) = false
-        AND COALESCE(archived, false) = false
-      ORDER BY created_at DESC
-      LIMIT 100`,
-    [contact.id],
-  );
-  return rows.map((d) => {
+  const [{ rows }, actionsRes] = await Promise.all([
+    crmQuery(
+      `SELECT id, name, category, lender, file_size_bytes, created_at
+         FROM public.documents
+        WHERE contact_id = $1
+          AND tags && ARRAY['Portal']::text[]
+          AND COALESCE(is_deleted, false) = false
+          AND COALESCE(archived, false) = false
+        ORDER BY created_at DESC
+        LIMIT 100`,
+      [contact.id],
+    ),
+    crmQuery(
+      `SELECT t.type, t.completed_at, c.lender, c.lender_other
+         FROM public.client_communications_tracking t
+         LEFT JOIN public.cases c ON c.id = t.claim_id
+        WHERE t.client_id = $1 AND t.status = 'Completed' AND t.completed_at IS NOT NULL
+        ORDER BY t.completed_at DESC
+        LIMIT 50`,
+      [contact.id],
+    ).catch(() => ({ rows: [] })),
+  ]);
+
+  const uploads = rows.map((d) => {
     const name = String(d.name || "upload");
     const ext = (name.split(".").pop() || "").toLowerCase();
     return {
@@ -493,6 +521,25 @@ export async function getDocumentsByContactId(contact) {
       kind: IMG_EXT.includes(ext) ? "image" : "pdf",
     };
   });
+
+  const actions = actionsRes.rows.map((a, i) => {
+    const lender = a.lender || a.lender_other || "";
+    const label = ACTION_RECEIPT_LABELS[a.type];
+    return {
+      id: `action-${a.type}-${i}`,
+      name: label ? label(lender) : humanizeActionType(a.type),
+      mime: "",
+      fileSize: 0,
+      documentType: "other",
+      uploadedOn: iso(a.completed_at) || "",
+      status: "verified",
+      kind: "pdf",
+    };
+  });
+
+  return [...uploads, ...actions].sort(
+    (a, b) => new Date(b.uploadedOn) - new Date(a.uploadedOn),
+  );
 }
 
 /** Record a portal upload in the CRM documents table so staff see it. When the

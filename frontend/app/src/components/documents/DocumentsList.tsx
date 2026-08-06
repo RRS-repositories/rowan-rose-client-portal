@@ -152,7 +152,7 @@ export function DocumentsList({ documents }: { documents: UploadedDoc[] }) {
                     </td>
                     <td className="p-sm font-body text-body-md text-on-surface-variant">{typeLabel(d)}</td>
                     <td className="whitespace-nowrap p-sm font-body text-body-md text-on-surface-variant">{formatDate(d.uploadedOn)}</td>
-                    <td className="whitespace-nowrap p-sm font-body text-body-md tabular-nums text-on-surface-variant">{formatFileSize(d.fileSize)}</td>
+                    <td className="whitespace-nowrap p-sm font-body text-body-md tabular-nums text-on-surface-variant">{d.fileSize > 0 ? formatFileSize(d.fileSize) : "—"}</td>
                     <td className="p-sm"><DocStatusBadge status={d.status} reason={d.rejectionReason} /></td>
                   </tr>
                 ))}
@@ -180,7 +180,7 @@ export function DocumentsList({ documents }: { documents: UploadedDoc[] }) {
                     <span className="font-body text-body-md text-on-surface-variant">{formatDate(d.uploadedOn)}</span>
                   </div>
                   <div className="mt-xs flex items-center justify-between">
-                    <span className="font-body text-body-md tabular-nums text-on-surface-variant">{formatFileSize(d.fileSize)}</span>
+                    <span className="font-body text-body-md tabular-nums text-on-surface-variant">{d.fileSize > 0 ? formatFileSize(d.fileSize) : ""}</span>
                     <DocStatusBadge status={d.status} reason={d.rejectionReason} />
                   </div>
                 </Card>

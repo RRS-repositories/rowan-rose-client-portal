@@ -187,7 +187,7 @@ export default function Documents() {
               <div>
                 <h2 id="receipts-heading" className="font-headline-md text-headline-md text-primary">What You've Sent Us</h2>
                 <p className="mt-1 font-body-lg text-body-md text-on-surface-variant">
-                  A record of everything you've sent through the portal — so you always know we've received it.
+                  A record of everything you've sent or signed through the portal — so you always know we've received it.
                 </p>
               </div>
               <DocumentsList documents={receipts} />
