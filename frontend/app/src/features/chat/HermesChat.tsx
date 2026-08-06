@@ -170,7 +170,11 @@ export default function HermesChat() {
             <p className="flex items-center gap-2 font-body text-label text-on-surface-variant" aria-live="polite">
               <span className="flex gap-1" aria-hidden>
                 {[0, 1, 2].map((i) => (
-                  <span key={i} className="h-2 w-2 animate-bounce rounded-full bg-on-surface-variant/60" style={{ animationDelay: `${i * 120}ms` }} />
+                  <span
+                    key={i}
+                    className="h-2 w-2 animate-pulse rounded-full bg-on-surface-variant/60"
+                    style={{ animationDelay: `${i * 180}ms` }}
+                  />
                 ))}
               </span>
               {ASSISTANT_DISPLAY_NAME} is typing…
