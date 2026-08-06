@@ -10,7 +10,6 @@
  */
 import { crmQuery, crmWriteQuery } from "../crmdb.js";
 import { mapStatus, isEscalatedStatus } from "./statusMap.js";
-import { s3Enabled, contactPrefix, listByPrefix, presignGet } from "../s3.js";
 
 // ── Contacts (clients) ──────────────────────────────────────────────────────
 
@@ -450,58 +449,50 @@ const extMime = (ext) => {
   return "application/octet-stream";
 };
 
-/** Coarse document type from the file's sub-folder path (for icon/grouping). */
-function docTypeFromPath(rel) {
-  const p = rel.toLowerCase();
-  if (p.includes("id_document") || p.includes("identification") || /(^|\/)id(\/|_)/.test(p)) return "id";
-  if (p.includes("proof_of_address") || p.includes("poa")) return "address";
-  if (p.includes("statement") || p.includes("bank")) return "bank-statement";
-  if (p.includes("loa") || p.includes("letter_of_authority")) return "loan-agreement";
-  return "other";
-}
-
 const CATEGORY_BY_DOCTYPE = {
   id: "ID Document", address: "Proof of Address", "bank-statement": "Bank Statement",
   "loan-agreement": "Letter of Authority", other: "Client",
 };
 
+const DOCTYPE_BY_CATEGORY = Object.fromEntries(
+  Object.entries(CATEGORY_BY_DOCTYPE).map(([k, v]) => [v, k]),
+);
+
 /**
- * ALL of a client's files, listed directly from their S3 folder
- * `{first}_{last}_{id}/` (every sub-folder — Documents/, Lenders/…). Folder
- * markers and zero-byte keys are skipped, and anything the firm has hidden
- * (hidden_documents) is excluded. Each file gets a short-lived presigned URL.
- * Takes the CRM contact object (needs first/last/id to build the prefix).
+ * The client's RECEIPTS — only what they themselves sent via the portal
+ * (documents rows tagged 'Portal'), never the firm's case files. Replaces the
+ * old whole-S3-folder listing, which surfaced firm/lender documents and
+ * presigned up to 300 files on every bootstrap. No download URLs: this list is
+ * reassurance ("we've got it"), not file management.
  */
 export async function getDocumentsByContactId(contact) {
-  if (!contact || !s3Enabled()) return [];
-  const prefix = contactPrefix(contact);
-  const [objects, hiddenRes] = await Promise.all([
-    listByPrefix(prefix),
-    crmQuery("SELECT s3_key FROM public.hidden_documents WHERE contact_id = $1", [contact.id]).catch(() => ({ rows: [] })),
-  ]);
-  const hidden = new Set(hiddenRes.rows.map((r) => r.s3_key));
-  const files = objects
-    .filter((o) => o.Key && !o.Key.endsWith("/") && (o.Size || 0) > 0 && !hidden.has(o.Key))
-    .sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified))
-    .slice(0, 300);
-  return Promise.all(files.map(async (o) => {
-    const rel = o.Key.slice(prefix.length);
-    const name = rel.split("/").pop();
+  if (!contact) return [];
+  const { rows } = await crmQuery(
+    `SELECT id, name, category, lender, file_size_bytes, created_at
+       FROM public.documents
+      WHERE contact_id = $1
+        AND tags && ARRAY['Portal']::text[]
+        AND COALESCE(is_deleted, false) = false
+        AND COALESCE(archived, false) = false
+      ORDER BY created_at DESC
+      LIMIT 100`,
+    [contact.id],
+  );
+  return rows.map((d) => {
+    const name = String(d.name || "upload");
     const ext = (name.split(".").pop() || "").toLowerCase();
     return {
-      id: Buffer.from(o.Key).toString("base64url"),
+      id: String(d.id),
       name,
       mime: extMime(ext),
-      fileSize: Number(o.Size) || 0,
-      documentType: docTypeFromPath(rel),
-      uploadedOn: new Date(o.LastModified).toISOString(),
+      fileSize: Number(d.file_size_bytes) || 0,
+      documentType: DOCTYPE_BY_CATEGORY[d.category] || "other",
+      uploadedOn: iso(d.created_at) || "",
       status: "received",
-      lenderName: rel.toLowerCase().startsWith("lenders/") ? (rel.split("/")[1] || "").replace(/_/g, " ") : undefined,
+      lenderName: d.lender || undefined,
       kind: IMG_EXT.includes(ext) ? "image" : "pdf",
-      folder: rel.includes("/") ? rel.split("/").slice(0, -1).join("/") : "",
-      url: await presignGet(o.Key),
     };
-  }));
+  });
 }
 
 /** Record a portal upload in the CRM documents table so staff see it. When the

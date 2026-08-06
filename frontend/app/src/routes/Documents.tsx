@@ -10,13 +10,16 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/useToast";
 import { RequirementsGrid } from "@/components/documents/RequirementsGrid";
 import { DocumentUpload, type DocumentUploadHandle } from "@/components/documents/DocumentUpload";
+import { DocumentsList } from "@/components/documents/DocumentsList";
 import { LegalFooter } from "./Dashboard";
 import { useMockQuery } from "@/data/useMockQuery";
 import { getClient } from "@/data/mock";
 import { DOCUMENT_TYPES } from "@/config/upload";
 import type { DocumentType, Requirement, RequirementKind, UploadedDoc } from "@/data/types";
-// Note: the "Your Documents" list was intentionally removed — clients only send
-// documents, they don't review them here. Uploads still post to the backend.
+// The page is upload-first, but keeps a RECEIPTS list ("What you've sent us") —
+// the client's own portal uploads with a permanent Received tick. Reassurance
+// for an audience that phones to ask "did you get my statements?"; never the
+// firm's case files, and no downloads.
 
 /** Requirement kind → the document type to pre-select on the upload form. */
 const docTypeForKind = (kind: RequirementKind): DocumentType | "" =>
@@ -46,6 +49,9 @@ export default function Documents() {
   // requirement card or a ?highlight=<id> deep link. Disambiguates per-lender
   // bank statements (same kind, different lenders).
   const [targetReqId, setTargetReqId] = useState<string | null>(null);
+  // Receipts uploaded during THIS visit — merged ahead of the server list, and
+  // deduped against it by (name, size) once re-hydration returns the DB rows.
+  const [sessionDocs, setSessionDocs] = useState<UploadedDoc[]>([]);
 
   const uploadRef = useRef<HTMLDivElement>(null);
   const uploadHandle = useRef<DocumentUploadHandle>(null);
@@ -85,7 +91,9 @@ export default function Documents() {
     window.setTimeout(() => uploadHandle.current?.focusZone(), 320);
   }
 
-  function handleUploaded(_doc: UploadedDoc, requirementUpdated: RequirementKind | null) {
+  function handleUploaded(doc: UploadedDoc, requirementUpdated: RequirementKind | null) {
+    // Show the new receipt immediately — the server copy arrives on next hydration.
+    setSessionDocs((cur) => [doc, ...cur]);
     // Pick the requirement this upload satisfies: the targeted one if it matches,
     // else the sole outstanding requirement of that kind (ID / Proof of Address are
     // unique; multiple lender bank statements need an explicit target).
@@ -120,6 +128,13 @@ export default function Documents() {
   const presetClaimId = bankStatementRequested
     ? requirements.find((r) => r.id === targetReqId)?.claimId ?? ""
     : "";
+
+  const receipts = [
+    ...sessionDocs,
+    ...(data?.documents ?? []).filter(
+      (d) => !sessionDocs.some((s) => s.name === d.name && s.fileSize === d.fileSize),
+    ),
+  ];
 
   return (
     <Page label="Documents">
@@ -164,6 +179,18 @@ export default function Documents() {
                 presetClaimId={presetClaimId}
                 onUploaded={handleUploaded}
               />
+            </section>
+
+            <hr className="border-outline-variant/30" />
+
+            <section aria-labelledby="receipts-heading" className="space-y-md">
+              <div>
+                <h2 id="receipts-heading" className="font-headline-md text-headline-md text-primary">What You've Sent Us</h2>
+                <p className="mt-1 font-body-lg text-body-md text-on-surface-variant">
+                  A record of everything you've sent through the portal — so you always know we've received it.
+                </p>
+              </div>
+              <DocumentsList documents={receipts} />
             </section>
           </div>
         )}
