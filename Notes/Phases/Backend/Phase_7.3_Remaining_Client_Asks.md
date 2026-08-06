@@ -201,13 +201,23 @@ new deploy's service worker takes over and checks for updates on focus.
   in-portal LoA e-sign); the link is served per-claim by the portal backend,
   ownership-checked. No new GRANTs needed — tracking SELECT shipped with Slice A.
 
-**Resumed 2026-08-06.** Brad approved the test bump + timing fix ("everything as
-per the timing"): test contact's questionnaire chase `next_action_at` bumped to
-NOW (workflow id 28625); ready-signal redesign implemented — notification
-triggers moved to `questionnaire_tokens` INSERT / tracking `extra_lender`
-INSERT (old `zz_portal_notify_workflow_chases` dropped in the revised DDL,
-`portal.notify_chase_workflow` left orphaned, droppable by portal_app), and the
-two requirement cards now ALSO require the form link to exist. DDL at the gate.
+**Resumed 2026-08-06 — ready-signal revision APPLIED + DEPLOYED, verified live.**
+Brad approved the test bump + timing fix ("everything as per the timing"): test
+contact's questionnaire chase `next_action_at` bumped to NOW (workflow id 28625);
+notification triggers moved to `questionnaire_tokens` INSERT / tracking
+`extra_lender` INSERT (old `zz_portal_notify_workflow_chases` dropped;
+`portal.notify_chase_workflow` left orphaned, droppable by portal_app); the two
+requirement cards now ALSO require the form link to exist. 9 triggers live.
+Gotcha fixed during apply: the scp'd Section-2 slice was STALE — always
+regenerate `portal-triggers-section2.sql` from the current SQL before applying.
+⚠️ **CRM bug found (Brad's side, not portal scope):** `processQuestionnaireChase`
+sweeps `LIMIT 10` with no ORDER BY and no next_action_at filter — 47h-throttled
+contacts permanently occupy the slots and starve newer chases (the bumped test
+workflow was never picked up). Test token minted directly (the worker's own
+INSERT, contact 234852) — which gave `zz_portal_notify_questionnaire_ready` its
+first live firing: fresh unread notification, card shown, link endpoint serving
+the token URL. Verified end-to-end on the API. Remaining drill: Brad taps Start
++ submits; extra-lender + FOS parts still to run.
 
 **⏸ PARKED 2026-08-05 evening — resume here.** Brad's drill found a timing gap:
 the Questionnaire Chase's FIRST action runs +48h after arming (test workflow
