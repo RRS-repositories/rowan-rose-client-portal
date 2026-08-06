@@ -13,6 +13,8 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { MessageThread, type OptimisticMessage } from "@/components/chat/MessageThread";
 import { ReplyComposer } from "@/components/chat/ReplyComposer";
 import { useAuth } from "@/context/AuthContext";
+import { REAL_AUTH } from "@/data/realClient";
+import HermesChat from "@/features/chat/HermesChat";
 import { useMockQuery } from "@/data/useMockQuery";
 import { getClient, subscribeUnread } from "@/data/mock";
 import { getMessageThreads, getClaimMessages, sendMessage, markThreadAsRead } from "@/api/messages";
@@ -303,6 +305,13 @@ function ChatPane({
 /* ─── Route ──────────────────────────────────────────────────────────────── */
 
 export default function Chat() {
+  // Real auth: live Sarah chat over the socket (Phase 7.4). Mock mode keeps the
+  // original mock-thread experience below so demos still work offline.
+  if (REAL_AUTH) return <HermesChat />;
+  return <MockChat />;
+}
+
+function MockChat() {
   const { claimId: claimIdParam } = useParams<{ claimId?: string }>();
   const claimId = claimIdParam ? decodeURIComponent(claimIdParam) : null;
   const navigate = useNavigate();

@@ -1,7 +1,10 @@
+import { createServer } from "node:http";
 import express from "express";
 import cors from "cors";
 import { authRouter } from "./routes/auth.js";
 import { clientRouter } from "./routes/client.js";
+import { chatRouter } from "./chat/routes.js";
+import { initChat } from "./chat/index.js";
 import { pool } from "./db.js";
 
 const app = express();
@@ -22,6 +25,7 @@ app.get("/health", async (_req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/client", clientRouter);
+app.use("/api/chat", chatRouter);
 
 // Plain-English JSON errors (never leak stack traces to the client).
 // eslint-disable-next-line no-unused-vars
@@ -30,4 +34,9 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ message: "Something went wrong. Please try again." });
 });
 
-app.listen(PORT, () => console.log(`✔ portal backend listening on http://localhost:${PORT}`));
+// Socket.io needs the HTTP server, not the Express app — chat attaches to it.
+// The portal backend MUST stay single-instance (see chat/index.js §2).
+const httpServer = createServer(app);
+initChat(httpServer, ORIGINS);
+
+httpServer.listen(PORT, () => console.log(`✔ portal backend listening on http://localhost:${PORT}`));

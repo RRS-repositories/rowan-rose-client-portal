@@ -36,6 +36,7 @@ Backend foundation is now in progress on Brad's explicit Phase 6.1 instruction. 
 | 7.1 | Real API / CRM integration endpoints | planned | 6.1 + CRM schema discovery | _future_ |
 | 7.2 | CRM-triggered portal notifications (DB triggers → bell feed) | done | 6.1 | [[Phase_7.2_CRM_Triggered_Notifications]] |
 | 7.3 | Remaining client asks — offer acceptance, signature/LoA, questionnaire, extra-lender, FOS | in-progress | 7.2 | [[Phase_7.3_Remaining_Client_Asks]] |
+| 7.4 | Hermes chat — CRM↔portal live chat with AI agent (Phase 1 core) | in-progress | 7.2 | [[Phase_7.4_Hermes_Chat]] |
 
 ## Mobile (native app — Android + iOS)
 

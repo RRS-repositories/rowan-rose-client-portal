@@ -3,6 +3,7 @@ import { useAuth } from "./AuthContext";
 import { getUnreadCount, subscribeUnread } from "@/data/mock";
 import { REAL_AUTH } from "@/data/realClient";
 import { getNotifications, markNotificationsRead } from "@/api/notifications";
+import { apiClient } from "@/api/client";
 import type { PortalNotification } from "@/data/types";
 
 interface NotificationCtx {
@@ -33,11 +34,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const messagesUnread = useSyncExternalStore(subscribeUnread, getUnreadCount, () => 0);
   const [notifications, setNotifications] = useState<PortalNotification[]>([]);
 
+  const [chatUnread, setChatUnread] = useState(0);
+
   const refresh = useCallback(() => {
     if (!REAL_AUTH || !state.isAuthenticated) return;
     getNotifications()
       .then((r) => setNotifications(r.notifications))
       .catch(() => { /* keep the last known feed — the bell must never crash the chrome */ });
+    // Unread chat messages drive the Chat nav badge (Phase 7.4).
+    apiClient
+      .get<{ unread: number }>("/api/chat/conversations")
+      .then((r) => setChatUnread(r.unread ?? 0))
+      .catch(() => { /* chat may not be reachable — leave the badge as-is */ });
   }, [state.isAuthenticated]);
 
   useEffect(() => {
@@ -68,7 +76,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const notificationsUnread = notifications.filter((n) => !n.read).length;
-  const unreadCount = state.isAuthenticated ? messagesUnread + notificationsUnread : 0;
+  // Real auth: mock message counts are meaningless — chat unread is the real one.
+  const messageSlot = REAL_AUTH ? chatUnread : messagesUnread;
+  const unreadCount = state.isAuthenticated ? messageSlot + notificationsUnread : 0;
 
   return (
     <NotificationContext.Provider value={{ unreadCount, notifications, refresh, markRead }}>

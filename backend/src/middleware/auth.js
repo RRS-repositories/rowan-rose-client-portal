@@ -30,22 +30,33 @@ async function resolveContact(user) {
   return null;
 }
 
+/**
+ * Verify a session JWT and load the portal user + linked CRM contact. The one
+ * authentication path for BOTH transports: requireAuth (REST) and the chat
+ * socket handshake (chat/socketAuth.js) — so chat is exactly as secure as the
+ * rest of the portal, never more, never less. Null on any failure.
+ */
+export async function resolveSession(token) {
+  const decoded = token ? verifyToken(token, "session") : null;
+  if (!decoded) return null;
+  const { rows } = await query(
+    "SELECT id, email, full_name, phone, dob, client_id, created_at FROM users WHERE id = $1",
+    [decoded.sub],
+  );
+  if (!rows[0]) return null;
+  return { user: rows[0], contact: await resolveContact(rows[0]) };
+}
+
 export async function requireAuth(req, res, next) {
   try {
     const header = req.headers.authorization || "";
     const token = header.startsWith("Bearer ") ? header.slice(7) : null;
-    const decoded = token ? verifyToken(token, "session") : null;
-    if (!decoded) return res.status(401).json({ message: "Please log in to continue." });
+    const session = await resolveSession(token);
+    if (!session) return res.status(401).json({ message: "Please log in to continue." });
 
-    const { rows } = await query(
-      "SELECT id, email, full_name, phone, dob, client_id, created_at FROM users WHERE id = $1",
-      [decoded.sub],
-    );
-    if (!rows[0]) return res.status(401).json({ message: "Account not found." });
-
-    req.user = rows[0];
-    // Resolve the CRM contact once per request (null if unlinked or CRM disabled).
-    req.contact = await resolveContact(rows[0]);
+    req.user = session.user;
+    // CRM contact resolved once per request (null if unlinked or CRM disabled).
+    req.contact = session.contact;
     next();
   } catch (err) {
     next(err);
