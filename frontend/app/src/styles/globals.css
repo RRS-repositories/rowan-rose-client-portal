@@ -162,14 +162,14 @@
 }
 
 /* ── Chat typing indicator ────────────────────────────────────────────────
-   Three dots that lift in sequence — the chat idiom everyone recognises.
-   A 4px lift on a smooth ease: enough to read as "typing", without the
-   springy overshoot of a stock bounce. The reduced-motion block above
-   already flattens this to a single frame. */
-@keyframes chat-typing-lift {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.55; }
-  30%           { transform: translateY(-4px); opacity: 1; }
+   Three dots bouncing in sequence — the chat idiom everyone recognises.
+   Quick up, soft settle, 6px of travel, so it reads as a bounce across the
+   room rather than a polite twitch. Kept identical to the CRM side of the
+   conversation. The reduced-motion block above flattens it to one frame. */
+@keyframes chat-typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30%           { transform: translateY(-6px); opacity: 1; }
 }
 .chat-typing-dot {
-  animation: chat-typing-lift 1.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: chat-typing-bounce 1.2s cubic-bezier(0.3, 0.9, 0.4, 1) infinite;
 }

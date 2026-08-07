@@ -217,14 +217,14 @@ export default function HermesChat() {
 }
 
 /** Classic three-dot typing indicator, rendered as a bubble in the thread so it
- *  reads as "someone is composing a message" rather than a status line. The
- *  lift is 4px on a smooth ease — the chat idiom people recognise, without the
- *  springy overshoot of a stock bounce. Respects reduced-motion. */
+ *  reads as "someone is composing a message" rather than a status line. Dots
+ *  only — naming the sender above them says nothing the bubble's own position
+ *  doesn't, and it's gone in a second or two. Screen readers still get the
+ *  words. Respects reduced-motion. */
 function TypingBubble({ who }: { who: string }) {
   return (
     <div className="flex justify-start" aria-live="polite">
-      <div className="skeuo-card max-w-[85%] rounded-2xl px-md py-sm">
-        <p className="mb-1 font-label-caps text-label-caps uppercase text-on-surface-variant">{who}</p>
+      <div className="skeuo-card rounded-2xl px-md py-sm">
         <span className="flex items-center gap-1.5 py-1" aria-label={`${who} is typing`}>
           {[0, 1, 2].map((i) => (
             <span
